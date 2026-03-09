@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { 
   Activity, AlertTriangle, BarChart3, Map, 
   MessageSquareWarning, ShieldAlert, TrendingUp, Users,
-  Search, Bell, Settings, Menu, MapPin, BookOpen
+  Search, Bell, Settings, Menu, MapPin, BookOpen, Clock
 } from 'lucide-react';
 import { 
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
@@ -21,6 +21,7 @@ import { cn } from './utils';
 import { TrafficHotspotsDashboard } from './TrafficHotspotsDashboard';
 import { PublicSentimentDashboard } from './PublicSentimentDashboard';
 import { DocumentationDashboard } from './DocumentationDashboard';
+import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -41,8 +42,8 @@ export default function App() {
               <ShieldAlert size={20} />
             </div>
             <div>
-              <h1 className="text-sm font-semibold tracking-tight text-white">Montgomery Safety Lens</h1>
-              <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Reality vs Perception</p>
+              <h1 className="text-sm font-semibold tracking-tight text-white">Montgomery Responsiveness Lens</h1>
+              <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Service Efficiency Tracker</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -80,6 +81,7 @@ export default function App() {
             <NavItem icon={<Map size={16} />} label="Live Crime Map" active={activeTab === 'map'} onClick={() => setActiveTab('map')} />
             <NavItem icon={<BarChart3 size={16} />} label="911 Analytics" active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} />
             <NavItem icon={<Users size={16} />} label="311 Service Requests" active={activeTab === '311'} onClick={() => setActiveTab('311')} />
+            <NavItem icon={<Clock size={16} />} label="City Responsiveness" active={activeTab === 'responsiveness'} onClick={() => setActiveTab('responsiveness')} />
             <NavItem icon={<MapPin size={16} />} label="Traffic Hotspots" active={activeTab === 'traffic'} onClick={() => setActiveTab('traffic')} />
             <NavItem icon={<MessageSquareWarning size={16} />} label="Public Sentiment" active={activeTab === 'sentiment'} onClick={() => setActiveTab('sentiment')} />
             <NavItem icon={<BookOpen size={16} />} label="Documentation" active={activeTab === 'docs'} onClick={() => setActiveTab('docs')} />
@@ -114,6 +116,7 @@ export default function App() {
                   {activeTab === 'sentiment' && 'Public Sentiment'}
                   {activeTab === 'analytics' && '911 Analytics'}
                   {activeTab === '311' && '311 Service Requests'}
+                  {activeTab === 'responsiveness' && 'City Responsiveness Metrics'}
                   {activeTab === 'traffic' && 'Traffic Hotspots'}
                   {activeTab === 'docs' && 'System Documentation'}
                 </h2>
@@ -124,6 +127,7 @@ export default function App() {
                   {activeTab === 'sentiment' && 'Real-time social media and news comment analysis.'}
                   {activeTab === 'analytics' && 'Deep dive into emergency response metrics.'}
                   {activeTab === '311' && 'Explore community-reported issues and neighborhood services.'}
+                  {activeTab === 'responsiveness' && 'Analyzing 311 resolution speeds and departmental efficiency.'}
                   {activeTab === 'traffic' && 'Identifying high-priority traffic safety and nuisance areas.'}
                   {activeTab === 'docs' && 'Architecture, data sources, and methodologies.'}
                 </p>
@@ -569,6 +573,10 @@ export default function App() {
 
             {activeTab === 'sentiment' && (
               <PublicSentimentDashboard />
+            )}
+
+            {activeTab === 'responsiveness' && (
+              <CityResponsivenessDashboard />
             )}
 
             {activeTab === 'docs' && (
