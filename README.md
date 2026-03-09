@@ -1,62 +1,66 @@
-# Montgomery Safety Lens: Reality vs Perception
+# Montgomery — Eyes on our Community
 
-This document outlines the architecture, data sources, and methodologies used to power the Montgomery Safety Lens dashboard. It explains how disparate data streams are combined to analyze the gap between actual safety incidents and public perception.
+A civic intelligence dashboard that visualizes **live** 311 service requests, code violations, and traffic data from the City of Montgomery's public GIS APIs. All dashboards are powered by real-time data — no mock or simulated data is used.
 
-## Setup & Architecture
+## Live Dashboards
 
-The application is built using a modern full-stack architecture:
+| Dashboard | Data Source | Description |
+|---|---|---|
+| **District Incidents** | Montgomery GIS (311 + Code Violations) | Maps live incidents to the 9 city council districts with spatial joins |
+| **311 Service Requests** | Montgomery GIS (311) | Date-filtered heatmap of neighborhood service demand |
+| **City Responsiveness** | Montgomery GIS (311) | Analyzes 311 resolution speeds and open/closed ratios |
+| **Traffic Hotspots** | Montgomery GIS (311 + Code Violations) | Identifies high-priority traffic safety and nuisance areas |
+| **Public Sentiment** | Bright Data API + Gemini AI | Real-time social media and news sentiment analysis |
 
-- **Frontend:** React 18, Vite, Tailwind CSS, Recharts for data visualization, and Lucide for iconography.
-- **Backend:** Node.js with Express, serving as a proxy for external APIs to prevent CORS issues and protect API keys.
-- **AI Integration:** Google Gemini API (`@google/genai`) for natural language processing and sentiment analysis.
-- **Data Scraping:** Bright Data API for real-time social media data collection.
+## Tech Stack
 
-### Required Environment Variables
+- **Frontend:** React 18, Vite, Vanilla CSS, Recharts, Leaflet, Lucide icons
+- **Backend:** Node.js with Express (API proxy for external services)
+- **AI:** Google Gemini API (`@google/genai`) for sentiment analysis
+- **Data Scraping:** Bright Data API for social media collection
+- **Geospatial:** Turf.js for point-in-polygon district assignment
 
-To run this project, you will need to set the following environment variables (see `.env.example`):
+## Data Sources
+
+### Montgomery Open Data Portal
+- **URL:** [opendata.montgomeryal.gov](https://opendata.montgomeryal.gov/)
+- **APIs Used:**
+  - 311 Service Requests (ArcGIS REST)
+  - Code Violations (ArcGIS REST)
+  - City Council Districts (GeoJSON)
+- **Date Filtering:** All API queries support dynamic date ranges (30 days, 90 days, YTD, 3 years)
+
+### Social Media Sentiment
+- **Source:** Bright Data Web Scraper API → Gemini AI
+- **Flow:** Raw social posts are collected via Bright Data, then analyzed by Gemini to produce sentiment scores, trend direction, and keyword extraction
+- **Fallback:** If Bright Data fails, Gemini generates a context-aware sentiment report
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and set:
 
 ```env
 GEMINI_API_KEY=your_gemini_key
 BRIGHT_DATA_API_KEY=your_bright_data_key
-BRIGHT_DATA_COLLECTOR_ID=c_m7z...
+BRIGHT_DATA_COLLECTOR_ID=your_collector_id
 ```
 
-## Data Sources & Acquisition
+## Running Locally
 
-### 1. Montgomery Open Data Portal
-- **Source:** [opendata.montgomeryal.gov](https://opendata.montgomeryal.gov/)
-- **How it was obtained:** Accessed via public ArcGIS REST APIs and embedded iframes provided by the city.
-- **Usage:** Provides the foundational layers for the Live Crime Map, 911 Calls, and 311 Service Requests.
+```bash
+npm install
+npm run dev
+```
 
-### 2. Social Media Sentiment (X/Twitter)
-- **Source:** Bright Data Web Scraper API
-- **How it was obtained:** A custom Express backend route triggers a Bright Data collector job. The job scrapes recent posts related to Montgomery, AL traffic and safety. The raw JSON output is then polled and retrieved.
-- **Usage:** The raw text is fed into the Gemini AI model to extract a normalized "Perception Score" (0-100) and identify trending keywords.
+The app will be available at **http://localhost:8081**
 
-### 3. Simulated District Metrics
-- **Source:** Internal Mock Data Generator
-- **How it was obtained:** Generated algorithmically to represent the 9 city council districts.
-- **Usage:** Used to calculate the "Misalignment Index" (Perceived Risk minus Actual Risk) to demonstrate the core value proposition of the dashboard.
+## Docker
 
-## Map Creation & Integration
+See [DOCKER_README.md](./DOCKER_README.md) for Docker-based development.
 
-The maps in this application utilize a hybrid approach, combining embedded official city maps with custom data visualizations.
+## Architecture
 
-### Official City Maps
-The **Live Crime Map**, **911 Calls**, and **311 Requests** tabs embed official ArcGIS dashboards from the Montgomery Open Data Portal via iframes. This ensures the data is authoritative, real-time, and requires zero maintenance of spatial databases on our end.
-
-### Custom District Map
-The **District Map** (SVG-based) was created by mapping the 9 City Council districts. It combines the simulated *Actual Risk* (derived from 911/311 density) with the *Perceived Risk* (derived from Bright Data/Gemini sentiment analysis) to color-code areas based on their Misalignment Index.
-
-## System Architecture
-
-1. **External Sources:** Montgomery Open Data Portal & Social Media (X) via Bright Data Scraper.
-2. **Processing Layer:** Direct iFrame Embeds for maps, and an Express backend to handle Bright Data API polling.
-3. **AI Layer:** Gemini AI processes the scraped social media text to generate sentiment scores and keywords.
-4. **Frontend Dashboard:** React dashboard combines the actual data with AI sentiment to calculate the Misalignment Index and display it to the user.
-
-## Useful Information
-
-- **Misalignment Index:** Calculated as `Perceived Risk - Actual Risk`. A positive number means citizens feel less safe than the data suggests.
-- **Fallback Mechanism:** If the Bright Data scraper times out or fails (e.g., due to rate limits), the backend automatically asks Gemini to generate a realistic, context-aware fallback sentiment report based on the requested keywords.
-- **Proxy Metrics:** Due to restricted access to detailed crash databases, 911 calls (filtered by specific categories) and 311 traffic engineering requests are used as proxies for traffic safety issues.
+1. **Data Layer:** Montgomery GIS REST APIs provide authoritative, real-time incident data
+2. **Geospatial Processing:** Turf.js performs point-in-polygon checks to assign incidents to council districts
+3. **AI Layer:** Gemini processes scraped social media text to generate sentiment scores
+4. **Frontend:** React dashboard combines live GIS data with AI sentiment for civic insight

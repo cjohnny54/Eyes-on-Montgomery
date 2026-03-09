@@ -6,7 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import { AlertTriangle, MapPin, ShieldAlert, Zap, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from './utils';
 
-// Define types for our simulated datasets
+// Define types for our live datasets
 type DatasetType = 'Traffic Engineering' | '311 Requests' | 'Environmental Nuisance' | 'Code Violations';
 type ComplaintTheme = 'Traffic Safety' | 'Nuisance' | 'Code/Blight';
 

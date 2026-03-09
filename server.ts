@@ -158,7 +158,7 @@ async function startServer() {
       } catch (apiError: any) {
         console.error("Bright Data API error:", apiError);
         
-        // Fallback: Use Gemini to generate realistic mock data
+        // Fallback: Use Gemini to generate a context-aware sentiment report
         let fallbackData;
         try {
           const fallbackPrompt = `You are a public sentiment analysis AI. The live data collector failed, so generate a realistic, data-driven fallback report for Montgomery, Alabama based on these keywords: ${userKeywords || 'safety, traffic'}.

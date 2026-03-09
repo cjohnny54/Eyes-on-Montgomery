@@ -5,16 +5,9 @@
 
 import React, { useState } from 'react';
 import { 
-  Activity, AlertTriangle, Map,
-  MessageSquareWarning, ShieldAlert, TrendingUp, Users,
-  Search, Bell, Settings, Menu, MapPin, Clock
+  MessageSquareWarning, ShieldAlert, Users,
+  Search, Bell, Settings, MapPin, Clock
 } from 'lucide-react';
-import { 
-  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, Cell, ReferenceLine, BarChart, Bar, LineChart, Line, Legend
-} from 'recharts';
-import { MOCK_DISTRICTS, TIME_SERIES_DATA, DistrictData } from './data';
-import { DistrictMap } from './DistrictMap';
 import { IncidentMapDashboard } from './IncidentMapDashboard';
 import { cn } from './utils';
 
@@ -25,12 +18,7 @@ import { ServiceMapDashboard } from './ServiceMapDashboard';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('incidents');
-  const [selectedDistrict, setSelectedDistrict] = useState<DistrictData | null>(null);
   const [dateRange, setDateRange] = useState('Last 30 Days');
-
-  const totalCalls = MOCK_DISTRICTS.reduce((acc, d) => acc + d.calls911, 0);
-  const avgMisalignment = MOCK_DISTRICTS.reduce((acc, d) => acc + d.misalignmentIndex, 0) / MOCK_DISTRICTS.length;
-  const criticalDistricts = MOCK_DISTRICTS.filter(d => d.misalignmentIndex > 15).length;
 
   return (
     <div className="min-h-screen bg-[#0A0A0B] text-slate-200 font-sans selection:bg-emerald-500/30">
@@ -178,29 +166,4 @@ function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, labe
     </button>
   );
 }
-
-function KpiCard({ title, value, trend, trendUp, subtitle, icon }: { title: string, value: string, trend: string, trendUp: boolean, subtitle: string, icon: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#141415] p-5 relative overflow-hidden group">
-      <div className="absolute right-0 top-0 h-24 w-24 -translate-y-8 translate-x-8 rounded-full bg-white/5 blur-2xl group-hover:bg-white/10 transition-colors"></div>
-      <div className="flex items-start justify-between mb-4">
-        <div className="rounded-lg bg-white/5 p-2">
-          {icon}
-        </div>
-        <span className={cn(
-          "text-[10px] font-medium px-2 py-1 rounded-full",
-          trendUp ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
-        )}>
-          {trend}
-        </span>
-      </div>
-      <div>
-        <h3 className="text-3xl font-semibold text-white tracking-tight mb-1">{value}</h3>
-        <p className="text-sm font-medium text-slate-300">{title}</p>
-        <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
 
