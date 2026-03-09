@@ -3,11 +3,11 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip as LeafletToolt
 import 'leaflet/dist/leaflet.css';
 import * as turf from '@turf/turf';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { PhoneCall, Users, Car, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { Users, Car, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from './utils';
 
 // Define types
-type IncidentType = '911' | '311' | 'Traffic';
+type IncidentType = '311' | 'Traffic';
 
 interface Incident {
   id: string;
@@ -19,13 +19,11 @@ interface Incident {
 interface DistrictStats {
   districtId: string;
   total: number;
-  type911: number;
   type311: number;
   typeTraffic: number;
 }
 
-const COLORS = {
-  '911': '#ef4444', // red-500
+const COLORS: Record<IncidentType, string> = {
   '311': '#10b981', // emerald-500
   'Traffic': '#f59e0b', // amber-500
 };
@@ -44,14 +42,14 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
   const [selectedType, setSelectedType] = useState<IncidentType | 'All'>('All');
   const [selectedDistrict, setSelectedDistrict] = useState<string | 'All'>('All');
 
-  const fetchDataAndSimulate = async () => {
+  const fetchLiveData = async () => {
     setLoading(true);
     setError(null);
     try {
-      // 1. Fetch GeoJSON
+      // 1. Fetch District GeoJSON
       let data = geoJsonData;
       if (!data) {
-        const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3/query?where=1%3D1&outFields=*&f=geojson');
+        const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0/query?where=1%3D1&outFields=*&f=geojson');
         if (!response.ok) {
           throw new Error('Failed to fetch district data');
         }
@@ -59,44 +57,107 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
         setGeoJsonData(data);
       }
 
-      // 2. Generate Simulated Incidents based on dateRange
-      // We simulate different volumes based on the selected date range
-      const volumeMultiplier = dateRange === 'Last 90 Days' ? 3 : dateRange === 'Year to Date' ? 6 : 1;
-      const basePoints = 500;
-      const totalPoints = basePoints * volumeMultiplier;
+      // 2. Calculate Date for filtering
+      const now = new Date();
+      let startDateStr = '2023-01-01'; // Default backup
 
-      const bbox = turf.bbox(data);
-      const randomPoints = turf.randomPoint(totalPoints, { bbox });
-      
-      const types: IncidentType[] = ['911', '311', 'Traffic'];
-      const validIncidents: Incident[] = [];
+      if (dateRange === 'Last 30 Days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        startDateStr = d.toISOString().split('T')[0];
+      } else if (dateRange === 'Last 90 Days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 90);
+        startDateStr = d.toISOString().split('T')[0];
+      } else if (dateRange === 'Year to Date') {
+        startDateStr = `${now.getFullYear()}-01-01`;
+      } else if (dateRange === '3 Years') {
+        startDateStr = '2023-01-01';
+      }
 
-      turf.featureEach(randomPoints, (point, index) => {
-        let assignedDistrictId: string | null = null;
+      // 3. Fetch Live 311 + Code Violations data in parallel
+      const [res311, resCode] = await Promise.all([
+        fetch(`https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Received_311_Service_Request/FeatureServer/0/query?where=Create_Date+>=+DATE+'${startDateStr}'&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000`).then(r => r.ok ? r.json() : null),
+        fetch(`https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Code_Violations/FeatureServer/0/query?where=created_date+>=+DATE+'${startDateStr}'&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000`).then(r => r.ok ? r.json() : null)
+      ]);
 
-        // Find which district the point is in
-        turf.featureEach(data, (district) => {
-          if (assignedDistrictId) return; // Already found
-          
-          if (district.geometry.type === 'Polygon' || district.geometry.type === 'MultiPolygon') {
-            if (turf.booleanPointInPolygon(point, district as any)) {
-              assignedDistrictId = district.properties?.DISTRICT || district.properties?.Id || `District-${index}`;
-            }
+      const liveIncidents: Incident[] = [];
+
+      // Process 311 Service Requests
+      if (res311 && res311.features) {
+        res311.features.forEach((feature: any, index: number) => {
+          if (!feature.geometry || !feature.geometry.coordinates) return;
+          const coords = feature.geometry.coordinates as [number, number];
+          if (!Array.isArray(coords) || coords.length < 2 || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') return;
+
+          const dept = feature.properties?.Department || '';
+          const reqType = feature.properties?.Request_Type || '';
+
+          // Classify: Traffic Engineering → 'Traffic', everything else → '311'
+          let incidentType: IncidentType = '311';
+          if (dept === 'Traffic Engineering' || dept === 'Street Maintenance' ||
+              reqType.toLowerCase().includes('traffic') || reqType.toLowerCase().includes('sign') ||
+              reqType.toLowerCase().includes('speed') || reqType.toLowerCase().includes('light') ||
+              reqType.toLowerCase().includes('street')) {
+            incidentType = 'Traffic';
+          }
+
+          // Spatial Join: get district from data or point-in-polygon
+          let assignedDistrictId: string | null = feature.properties?.District ? String(feature.properties.District) : null;
+          if (!assignedDistrictId) {
+            turf.featureEach(data, (district) => {
+              if (assignedDistrictId) return;
+              if (district.geometry.type === 'Polygon' || district.geometry.type === 'MultiPolygon') {
+                if (turf.booleanPointInPolygon(turf.point(coords), district as any)) {
+                  assignedDistrictId = district.properties?.DISTRICT || district.properties?.Id || 'Unknown';
+                }
+              }
+            });
+          }
+
+          if (assignedDistrictId) {
+            const normalizedId = String(assignedDistrictId).replace(/\D/g, '');
+            liveIncidents.push({
+              id: `311-${feature.properties?.OBJECTID || index}`,
+              coordinates: coords,
+              type: incidentType,
+              districtId: normalizedId ? parseInt(normalizedId, 10).toString() : 'Unknown'
+            });
           }
         });
+      }
 
-        if (assignedDistrictId) {
-          const normalizedId = String(assignedDistrictId).replace(/\D/g, '');
-          validIncidents.push({
-            id: `incident-${dateRange}-${index}`,
-            coordinates: point.geometry.coordinates as [number, number],
-            type: types[Math.floor(Math.random() * types.length)],
-            districtId: normalizedId ? parseInt(normalizedId, 10).toString() : 'Unknown'
+      // Process Code Violations → categorize as 'Traffic' (code/blight enforcement)
+      if (resCode && resCode.features) {
+        resCode.features.forEach((feature: any, index: number) => {
+          if (!feature.geometry || !feature.geometry.coordinates) return;
+          const coords = feature.geometry.coordinates as [number, number];
+          if (!Array.isArray(coords) || coords.length < 2 || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') return;
+
+          let assignedDistrictId: string | null = null;
+          turf.featureEach(data, (district) => {
+            if (assignedDistrictId) return;
+            if (district.geometry.type === 'Polygon' || district.geometry.type === 'MultiPolygon') {
+              if (turf.booleanPointInPolygon(turf.point(coords), district as any)) {
+                assignedDistrictId = district.properties?.DISTRICT || district.properties?.Id || 'Unknown';
+              }
+            }
           });
-        }
-      });
 
-      setIncidents(validIncidents);
+          if (assignedDistrictId) {
+            const normalizedId = String(assignedDistrictId).replace(/\D/g, '');
+            liveIncidents.push({
+              id: `code-${feature.properties?.OBJECTID || index}`,
+              coordinates: coords,
+              type: 'Traffic',
+              districtId: normalizedId ? parseInt(normalizedId, 10).toString() : 'Unknown'
+            });
+          }
+        });
+      }
+
+      console.log(`District Incidents: Loaded ${liveIncidents.length} live incidents (311: ${liveIncidents.filter(i => i.type === '311').length}, Traffic/Code: ${liveIncidents.filter(i => i.type === 'Traffic').length}) for range: ${dateRange}`);
+      setIncidents(liveIncidents);
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An error occurred while fetching data.');
@@ -106,7 +167,7 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
   };
 
   useEffect(() => {
-    fetchDataAndSimulate();
+    fetchLiveData();
   }, [dateRange]);
 
   // 3. Aggregate Data
@@ -130,20 +191,18 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
 
   const { districtStats, cityWideStats } = useMemo(() => {
     const statsMap = new Map<string, DistrictStats>();
-    const cityStats = { total: 0, type911: 0, type311: 0, typeTraffic: 0 };
+    const cityStats = { total: 0, type311: 0, typeTraffic: 0 };
 
     filteredIncidents.forEach(incident => {
       cityStats.total++;
-      if (incident.type === '911') cityStats.type911++;
       if (incident.type === '311') cityStats.type311++;
       if (incident.type === 'Traffic') cityStats.typeTraffic++;
 
       if (!statsMap.has(incident.districtId)) {
-        statsMap.set(incident.districtId, { districtId: incident.districtId, total: 0, type911: 0, type311: 0, typeTraffic: 0 });
+        statsMap.set(incident.districtId, { districtId: incident.districtId, total: 0, type311: 0, typeTraffic: 0 });
       }
       const dStat = statsMap.get(incident.districtId)!;
       dStat.total++;
-      if (incident.type === '911') dStat.type911++;
       if (incident.type === '311') dStat.type311++;
       if (incident.type === 'Traffic') dStat.typeTraffic++;
     });
@@ -156,8 +215,8 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[500px] w-full bg-[#141415] rounded-2xl border border-white/10">
         <Loader2 className="h-10 w-10 text-emerald-500 animate-spin mb-4" />
-        <h3 className="text-lg font-medium text-white">Processing Spatial Data</h3>
-        <p className="text-sm text-slate-400 mt-2">Fetching districts and simulating incidents...</p>
+        <h3 className="text-lg font-medium text-white">Loading Live Incident Data</h3>
+        <p className="text-sm text-slate-400 mt-2">Fetching 311 requests and code violations from Montgomery GIS...</p>
       </div>
     );
   }
@@ -169,7 +228,7 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
         <h3 className="text-lg font-medium text-white">Failed to load map data</h3>
         <p className="text-sm text-slate-400 mt-2 mb-6">{error}</p>
         <button 
-          onClick={fetchDataAndSimulate}
+          onClick={fetchLiveData}
           className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium"
         >
           <RefreshCw size={16} />
@@ -258,9 +317,8 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
                 className="bg-[#141415] border border-white/10 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-blue-500 transition-colors"
               >
                 <option value="All">All Types</option>
-                <option value="911">911 Emergency</option>
                 <option value="311">311 Request</option>
-                <option value="Traffic">Traffic Issue</option>
+                <option value="Traffic">Traffic / Code</option>
               </select>
             </div>
             <div className="flex items-center gap-3">
@@ -279,14 +337,7 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
           </div>
 
           {/* Bottom Left: Summary Cards */}
-          <div className="grid grid-cols-3 gap-4 pointer-events-auto max-w-2xl">
-            <div className="rounded-2xl border border-white/10 bg-[#0A0A0B]/90 backdrop-blur-md p-4 flex flex-col justify-between shadow-xl h-24">
-              <div className="flex items-center gap-2 text-red-400">
-                <PhoneCall size={16} />
-                <span className="text-xs font-medium uppercase tracking-wider">911 Emergencies</span>
-              </div>
-              <div className="text-3xl font-semibold text-white">{cityWideStats.type911}</div>
-            </div>
+          <div className="grid grid-cols-2 gap-4 pointer-events-auto max-w-lg">
             <div className="rounded-2xl border border-white/10 bg-[#0A0A0B]/90 backdrop-blur-md p-4 flex flex-col justify-between shadow-xl h-24">
               <div className="flex items-center gap-2 text-emerald-400">
                 <Users size={16} />
@@ -297,7 +348,7 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
             <div className="rounded-2xl border border-white/10 bg-[#0A0A0B]/90 backdrop-blur-md p-4 flex flex-col justify-between shadow-xl h-24">
               <div className="flex items-center gap-2 text-amber-400">
                 <Car size={16} />
-                <span className="text-xs font-medium uppercase tracking-wider">Traffic Issues</span>
+                <span className="text-xs font-medium uppercase tracking-wider">Traffic / Code</span>
               </div>
               <div className="text-3xl font-semibold text-white">{cityWideStats.typeTraffic}</div>
             </div>
@@ -311,16 +362,12 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
             <h4 className="text-xs font-semibold text-white mb-3 uppercase tracking-wider">Legend</h4>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                <span className="text-xs font-medium text-slate-300">911 Emergency</span>
-              </div>
-              <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-                <span className="text-xs font-medium text-slate-300">311 Request</span>
+                <span className="text-xs font-medium text-slate-300">311 Service Request</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                <span className="text-xs font-medium text-slate-300">Traffic Issue</span>
+                <span className="text-xs font-medium text-slate-300">Traffic / Code Violation</span>
               </div>
             </div>
           </div>
@@ -370,12 +417,10 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
                       <span className="text-sm font-mono text-slate-300">{stat.total} total</span>
                     </div>
                     <div className="flex items-center gap-1 h-1.5 w-full rounded-full overflow-hidden bg-white/5">
-                      <div className="h-full bg-red-500" style={{ width: `${(stat.type911 / stat.total) * 100}%` }} />
                       <div className="h-full bg-emerald-500" style={{ width: `${(stat.type311 / stat.total) * 100}%` }} />
                       <div className="h-full bg-amber-500" style={{ width: `${(stat.typeTraffic / stat.total) * 100}%` }} />
                     </div>
                     <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                      <span className="text-red-400">{stat.type911} (911)</span>
                       <span className="text-emerald-400">{stat.type311} (311)</span>
                       <span className="text-amber-400">{stat.typeTraffic} (Traffic)</span>
                     </div>

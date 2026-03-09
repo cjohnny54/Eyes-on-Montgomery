@@ -18,7 +18,7 @@ interface ResponsivenessStats {
   efficiency: number; // percentage
 }
 
-export function CityResponsivenessDashboard() {
+export function CityResponsivenessDashboard({ dateRange = 'Last 30 Days' }: { dateRange?: string }) {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ResponsivenessStats[]>([]);
   const [departmentData, setDepartmentData] = useState<any[]>([]);
@@ -26,8 +26,28 @@ export function CityResponsivenessDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Live 311 Data from Montgomery GIS
-      const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Received_311_Service_Request/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000');
+      // 1. Calculate Date for filtering
+      const now = new Date();
+      let startDateStr = '2023-01-01'; // Default backup
+
+      if (dateRange === 'Last 30 Days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        startDateStr = d.toISOString().split('T')[0];
+      } else if (dateRange === 'Last 90 Days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 90);
+        startDateStr = d.toISOString().split('T')[0];
+      } else if (dateRange === 'Year to Date') {
+        startDateStr = `${now.getFullYear()}-01-01`;
+      } else if (dateRange === '3 Years') {
+        startDateStr = '2023-01-01';
+      }
+
+      const dateQuery = `Create_Date >= DATE '${startDateStr}'`;
+
+      // 2. Fetch Live 311 Data from Montgomery GIS with date filtering
+      const response = await fetch(`https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Received_311_Service_Request/FeatureServer/0/query?where=${encodeURIComponent(dateQuery)}&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000`);
       if (!response.ok) throw new Error('Failed to fetch live 311 data');
       const data = await response.json();
 
@@ -99,7 +119,7 @@ export function CityResponsivenessDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dateRange]);
 
   const overallAvg = useMemo(() => 
     stats.reduce((acc, s) => acc + s.avgResolutionDays, 0) / (stats.length || 1), 

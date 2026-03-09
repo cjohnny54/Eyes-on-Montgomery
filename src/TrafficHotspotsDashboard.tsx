@@ -54,16 +54,36 @@ export function TrafficHotspotsDashboard({ dateRange = 'Last 30 Days' }: { dateR
       // 1. Fetch District Polygons
       let data = geoJsonData;
       if (!data) {
-        const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3/query?where=1%3D1&outFields=*&f=geojson');
+        const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0/query?where=1%3D1&outFields=*&f=geojson');
         if (!response.ok) throw new Error('Failed to fetch district data');
         data = await response.json();
         setGeoJsonData(data);
       }
 
-      // 2. Fetch Live Datasets
+      // 2. Calculate Date for filtering
+      const now = new Date();
+      let startDateStr = '2023-01-01'; // Default
+
+      if (dateRange === 'Last 30 Days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        startDateStr = d.toISOString().split('T')[0];
+      } else if (dateRange === 'Last 90 Days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 90);
+        startDateStr = d.toISOString().split('T')[0];
+      } else if (dateRange === 'Year to Date') {
+        startDateStr = `${now.getFullYear()}-01-01`;
+      } else if (dateRange === '3 Years') {
+        startDateStr = '2023-01-01';
+      }
+
+      console.log('Fetching hotspots since:', startDateStr, 'for range:', dateRange);
+
+      // 3. Fetch Live Datasets with Date Filtering
       const [res311, resCode] = await Promise.all([
-        fetch('https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Received_311_Service_Request/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=2000').then(r => r.ok ? r.json() : null),
-        fetch('https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Code_Violations/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=2000').then(r => r.ok ? r.json() : null)
+        fetch(`https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Received_311_Service_Request/FeatureServer/0/query?where=Create_Date+>=+DATE+'${startDateStr}'&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000`).then(r => r.ok ? r.json() : null),
+        fetch(`https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Code_Violations/FeatureServer/0/query?where=created_date+>=+DATE+'${startDateStr}'&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000`).then(r => r.ok ? r.json() : null)
       ]);
 
       const liveComplaints: Complaint[] = [];
@@ -257,15 +277,6 @@ export function TrafficHotspotsDashboard({ dateRange = 'Last 30 Days' }: { dateR
     });
   }, [complaints]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] min-h-[600px] w-full bg-[#141415] rounded-2xl border border-white/10">
-        <Loader2 className="h-10 w-10 text-emerald-500 animate-spin mb-4" />
-        <h3 className="text-lg font-medium text-white">Aggregating Complaint Datasets</h3>
-        <p className="text-sm text-slate-400 mt-2">Processing Traffic Engineering, 311, Environmental, and Code data...</p>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -364,6 +375,15 @@ export function TrafficHotspotsDashboard({ dateRange = 'Last 30 Days' }: { dateR
           )}
         </MapContainer>
       </div>
+
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center bg-[#141415]/60 backdrop-blur-sm">
+          <Loader2 className="h-8 w-8 text-emerald-500 animate-spin mb-3" />
+          <h3 className="text-sm font-medium text-white">Updating Hotspot Data...</h3>
+          <p className="text-[10px] text-slate-300 mt-1 uppercase tracking-widest">{dateRange}</p>
+        </div>
+      )}
 
       {/* Floating UI Layer */}
       <div className="absolute inset-0 z-[400] pointer-events-none p-4 flex gap-4">

@@ -22,6 +22,7 @@ import { TrafficHotspotsDashboard } from './TrafficHotspotsDashboard';
 import { PublicSentimentDashboard } from './PublicSentimentDashboard';
 import { DocumentationDashboard } from './DocumentationDashboard';
 import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
+import { ServiceMapDashboard } from './ServiceMapDashboard';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -42,7 +43,7 @@ export default function App() {
               <ShieldAlert size={20} />
             </div>
             <div>
-              <h1 className="text-sm font-semibold tracking-tight text-white">Montgomery Responsiveness Lens</h1>
+              <h1 className="text-sm font-semibold tracking-tight text-white">Montgomery how we doing?</h1>
               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Service Efficiency Tracker</p>
             </div>
           </div>
@@ -122,12 +123,12 @@ export default function App() {
                 </h2>
                 <p className="text-sm text-slate-400">
                   {activeTab === 'overview' && 'Analyzing the gap between actual incidents and public perception.'}
-                  {activeTab === 'incidents' && 'Simulated 911, 311, and Traffic incidents mapped to city council districts.'}
+                  {activeTab === 'incidents' && 'Live 311 and code violation incidents mapped to city council districts.'}
                   {activeTab === 'map' && 'Official Montgomery Open Data Portal Integration'}
                   {activeTab === 'sentiment' && 'Real-time social media and news comment analysis.'}
                   {activeTab === 'analytics' && 'Deep dive into emergency response metrics.'}
-                  {activeTab === '311' && 'Explore community-reported issues and neighborhood services.'}
-                  {activeTab === 'responsiveness' && 'Analyzing 311 resolution speeds and departmental efficiency.'}
+                  {activeTab === '311' && `A ${dateRange.toLowerCase()} historical analysis of neighborhood service demand.`}
+                  {activeTab === 'responsiveness' && `Analyzing 311 resolution speeds for the ${dateRange.toLowerCase()} period.`}
                   {activeTab === 'traffic' && 'Identifying high-priority traffic safety and nuisance areas.'}
                   {activeTab === 'docs' && 'Architecture, data sources, and methodologies.'}
                 </p>
@@ -141,6 +142,7 @@ export default function App() {
                   <option value="Last 30 Days">Last 30 Days</option>
                   <option value="Last 90 Days">Last 90 Days</option>
                   <option value="Year to Date">Year to Date</option>
+                  <option value="3 Years">3 Years</option>
                 </select>
                 <button className="h-9 rounded-lg bg-white text-black px-4 text-xs font-medium hover:bg-slate-200 transition-colors">
                   Export Report
@@ -525,50 +527,7 @@ export default function App() {
             )}
 
             {activeTab === '311' && (
-              <div className="flex flex-col gap-6">
-                <div className="rounded-2xl border border-white/10 bg-[#141415] p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg bg-emerald-500/10 p-3 mt-1">
-                      <Users className="h-6 w-6 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-white mb-2">Community Traffic Complaints</h3>
-                      <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                        Traffic Engineering Service Requests act as our primary proxy for identifying unsafe driving conditions, poor signage, and visibility issues. Clusters of requests for <span className="text-white font-mono text-xs bg-white/10 px-1.5 py-0.5 rounded">Change Speed Limit</span>, <span className="text-white font-mono text-xs bg-white/10 px-1.5 py-0.5 rounded">Investigate signalized intersection</span>, or <span className="text-white font-mono text-xs bg-white/10 px-1.5 py-0.5 rounded">Street light out</span> highlight community-identified risk zones before crashes even occur.
-                      </p>
-                      <div className="flex gap-4">
-                        <a 
-                          href="https://www.montgomeryal.gov/residents/report-an-issue" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
-                        >
-                          Report a new issue to 311 &rarr;
-                        </a>
-                        <a 
-                          href="https://www.montgomeryal.gov/city-government/departments/neighborhood-services" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
-                        >
-                          Neighborhood Services Info &rarr;
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="h-[calc(100vh-320px)] w-full rounded-2xl border border-white/10 bg-[#141415] overflow-hidden flex flex-col">
-                  <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
-                    <h3 className="text-sm font-medium text-white">311 Service Requests Map</h3>
-                  </div>
-                  <iframe 
-                    src="https://opendata.montgomeryal.gov/datasets/received-311-service-requests-1/explore" 
-                    className="w-full flex-1 border-0 bg-white"
-                    title="Montgomery 311 Service Requests"
-                  />
-                </div>
-              </div>
+              <ServiceMapDashboard dateRange={dateRange} />
             )}
 
             {activeTab === 'sentiment' && (
@@ -576,7 +535,7 @@ export default function App() {
             )}
 
             {activeTab === 'responsiveness' && (
-              <CityResponsivenessDashboard />
+              <CityResponsivenessDashboard dateRange={dateRange} />
             )}
 
             {activeTab === 'docs' && (
