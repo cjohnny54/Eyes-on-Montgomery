@@ -26,33 +26,70 @@ export function CityResponsivenessDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Simulate fetching and processing 311 data
-      // In a real app, this would be an API call to the backend which aggregates the ArcGIS data
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const mockStats: ResponsivenessStats[] = Array.from({ length: 9 }).map((_, i) => {
-        const total = Math.floor(Math.random() * 500) + 200;
-        const closed = Math.floor(total * (0.6 + Math.random() * 0.3));
-        return {
-          districtId: (i + 1).toString(),
-          avgResolutionDays: parseFloat((Math.random() * 8 + 2).toFixed(1)),
-          totalRequests: total,
-          openCount: total - closed,
-          closedCount: closed,
-          efficiency: parseFloat(((closed / total) * 100).toFixed(1))
-        };
+      // 1. Fetch Live 311 Data from Montgomery GIS
+      const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/HostedDatasets/Received_311_Service_Request/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=3000');
+      if (!response.ok) throw new Error('Failed to fetch live 311 data');
+      const data = await response.json();
+
+      const districtMap = new Map<string, { total: number, closed: number, totalDays: number }>();
+      const deptMap = new Map<string, { volume: number, totalDays: number }>();
+
+      data.features.forEach((feature: any) => {
+        const props = feature.properties;
+        const districtId = props.District ? String(props.District).replace(/\D/g, '') : 'Unknown';
+        const dept = props.Department || 'Other';
+        const createDate = props.Create_Date;
+        const closeDate = props.Close_Date;
+        const status = props.Status;
+
+        // District Stats
+        if (!districtMap.has(districtId)) {
+          districtMap.set(districtId, { total: 0, closed: 0, totalDays: 0 });
+        }
+        const dStat = districtMap.get(districtId)!;
+        dStat.total++;
+
+        // Dept Stats
+        if (!deptMap.has(dept)) {
+          deptMap.set(dept, { volume: 0, totalDays: 0 });
+        }
+        const deptStat = deptMap.get(dept)!;
+        deptStat.volume++;
+
+        if (closeDate && createDate) {
+          const days = (closeDate - createDate) / (1000 * 60 * 60 * 24);
+          if (days >= 0) {
+            dStat.closed++;
+            dStat.totalDays += days;
+            deptStat.totalDays += days;
+          }
+        }
       });
 
-      const mockDepts = [
-        { name: 'Sanitation', volume: 450, resolution: 2.1 },
-        { name: 'Street Maint', volume: 320, resolution: 5.4 },
-        { name: 'Traffic Eng', volume: 180, resolution: 4.8 },
-        { name: 'Code Enforce', volume: 290, resolution: 7.2 },
-        { name: 'Inspectors', volume: 150, resolution: 3.5 }
-      ];
+      // Transform to ResponsivenessStats
+      const processedStats: ResponsivenessStats[] = Array.from(districtMap.entries())
+        .filter(([id]) => id !== 'Unknown' && id !== '')
+        .map(([id, data]) => ({
+          districtId: id,
+          avgResolutionDays: data.closed > 0 ? parseFloat((data.totalDays / data.closed).toFixed(1)) : 0,
+          totalRequests: data.total,
+          openCount: data.total - data.closed,
+          closedCount: data.closed,
+          efficiency: parseFloat(((data.closed / data.total) * 100).toFixed(1))
+        }));
 
-      setStats(mockStats.sort((a, b) => a.avgResolutionDays - b.avgResolutionDays));
-      setDepartmentData(mockDepts);
+      // Transform to Dept Stats
+      const processedDepts = Array.from(deptMap.entries())
+        .map(([name, data]) => ({
+          name,
+          volume: data.volume,
+          resolution: data.volume > 0 ? parseFloat((data.totalDays / data.volume).toFixed(1)) : 0
+        }))
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 5); // Top 5 depts
+
+      setStats(processedStats.sort((a, b) => a.avgResolutionDays - b.avgResolutionDays));
+      setDepartmentData(processedDepts);
     } catch (e) {
       console.error(e);
     } finally {
