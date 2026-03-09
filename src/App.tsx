@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { 
-  Activity, AlertTriangle, 
+  Activity, AlertTriangle, Map,
   MessageSquareWarning, ShieldAlert, TrendingUp, Users,
   Search, Bell, Settings, Menu, MapPin, Clock
 } from 'lucide-react';
@@ -24,7 +24,7 @@ import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
 import { ServiceMapDashboard } from './ServiceMapDashboard';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('incidents');
   const [selectedDistrict, setSelectedDistrict] = useState<DistrictData | null>(null);
   const [dateRange, setDateRange] = useState('Last 30 Days');
 
@@ -76,7 +76,6 @@ export default function App() {
         <aside className="w-64 border-r border-white/10 bg-[#0A0A0B] p-4 hidden lg:flex flex-col gap-8 overflow-y-auto">
           <nav className="flex flex-col gap-1">
             <p className="px-3 text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-2">Dashboards</p>
-            <NavItem icon={<Activity size={16} />} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
             <NavItem icon={<MapPin size={16} />} label="District Incidents" active={activeTab === 'incidents'} onClick={() => setActiveTab('incidents')} />
             <NavItem icon={<Users size={16} />} label="311 Service Requests" active={activeTab === '311'} onClick={() => setActiveTab('311')} />
             <NavItem icon={<Clock size={16} />} label="City Responsiveness" active={activeTab === 'responsiveness'} onClick={() => setActiveTab('responsiveness')} />
@@ -107,15 +106,13 @@ export default function App() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight text-white mb-1">
-                  {activeTab === 'overview' && 'Citywide Safety Intelligence'}
-                  {activeTab === 'incidents' && 'Montgomery Community Safety Lens'}
+                  {activeTab === 'incidents' && 'Montgomery Eyes on our Community'}
                   {activeTab === 'sentiment' && 'Public Sentiment'}
                   {activeTab === '311' && '311 Service Requests'}
                   {activeTab === 'responsiveness' && 'City Responsiveness Metrics'}
                   {activeTab === 'traffic' && 'Traffic Hotspots'}
                 </h2>
                 <p className="text-sm text-slate-400">
-                  {activeTab === 'overview' && 'Analyzing the gap between actual incidents and public perception.'}
                   {activeTab === 'incidents' && 'Live 311 and code violation incidents mapped to city council districts.'}
                   {activeTab === 'sentiment' && 'Real-time social media and news comment analysis.'}
                   {activeTab === '311' && `A ${dateRange.toLowerCase()} historical analysis of neighborhood service demand.`}
@@ -140,326 +137,6 @@ export default function App() {
               </div>
             </div>
 
-            {activeTab === 'overview' && (
-              <>
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <KpiCard 
-                title="Total 911 Calls" 
-                value={totalCalls.toLocaleString()} 
-                trend="+4.2%" 
-                trendUp={false} 
-                subtitle="vs previous 30 days"
-                icon={<Activity className="text-blue-400" size={20} />}
-              />
-              <KpiCard 
-                title="Avg Misalignment Index" 
-                value={`+${avgMisalignment.toFixed(1)}`} 
-                trend="Worsening" 
-                trendUp={false} 
-                subtitle="Perception is worse than reality"
-                icon={<MessageSquareWarning className="text-amber-400" size={20} />}
-              />
-              <KpiCard 
-                title="Critical Districts" 
-                value={criticalDistricts.toString()} 
-                trend="Action Required" 
-                trendUp={false} 
-                subtitle="Misalignment > 15 points"
-                icon={<AlertTriangle className="text-rose-400" size={20} />}
-              />
-              <KpiCard 
-                title="Public Sentiment" 
-                value="68/100" 
-                trend="Improving" 
-                trendUp={true} 
-                subtitle="Bright Data MCP"
-                icon={<TrendingUp className="text-emerald-400" size={20} />}
-              />
-            </div>
-
-            {/* Charts Row 1: Scatter & Map */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Scatter Plot: Reality vs Perception */}
-              <div className="rounded-2xl border border-white/10 bg-[#141415] p-5 flex flex-col">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-white">Reality vs Perception</h3>
-                    <p className="text-xs text-slate-400">Districts above the line feel less safe than they are.</p>
-                  </div>
-                </div>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis 
-                        type="number" 
-                        dataKey="actualSafetyScore" 
-                        name="Actual Safety Risk" 
-                        domain={[0, 100]} 
-                        stroke="#64748b" 
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        type="number" 
-                        dataKey="perceptionScore" 
-                        name="Perceived Risk" 
-                        domain={[0, 100]} 
-                        stroke="#64748b" 
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <RechartsTooltip 
-                        cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload as DistrictData;
-                            return (
-                              <div className="rounded-lg border border-white/10 bg-[#1A1A1C] p-3 shadow-xl">
-                                <p className="font-medium text-white mb-1">{data.name}</p>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                  <span className="text-slate-400">Actual Risk:</span>
-                                  <span className="text-white font-mono">{data.actualSafetyScore}</span>
-                                  <span className="text-slate-400">Perceived:</span>
-                                  <span className="text-white font-mono">{data.perceptionScore}</span>
-                                  <span className="text-slate-400">Misalignment:</span>
-                                  <span className={cn("font-mono", data.misalignmentIndex > 0 ? "text-rose-400" : "text-emerald-400")}>
-                                    {data.misalignmentIndex > 0 ? '+' : ''}{data.misalignmentIndex}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <ReferenceLine x={50} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
-                      <ReferenceLine y={50} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
-                      {/* Diagonal line representing perfect alignment */}
-                      <ReferenceLine segment={[{ x: 0, y: 0 }, { x: 100, y: 100 }]} stroke="rgba(255,255,255,0.2)" />
-                      <Scatter data={MOCK_DISTRICTS} onClick={(e) => setSelectedDistrict(e as any)}>
-                        {MOCK_DISTRICTS.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={entry.misalignmentIndex > 15 ? '#f43f5e' : entry.misalignmentIndex < -10 ? '#10b981' : '#3b82f6'} 
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
-                          />
-                        ))}
-                      </Scatter>
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* District Map */}
-              <div className="rounded-2xl border border-white/10 bg-[#141415] p-5 flex flex-col">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-white">Geographic Distribution</h3>
-                    <p className="text-xs text-slate-400">Select a district to view details.</p>
-                  </div>
-                </div>
-                <div className="h-[300px] w-full">
-                  <DistrictMap 
-                    districts={MOCK_DISTRICTS} 
-                    selectedDistrict={selectedDistrict} 
-                    onSelect={setSelectedDistrict} 
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Row 2: Time Series & Selected Details */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Time Series Trend */}
-              <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-[#141415] p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-white">30-Day Trend: Calls vs Sentiment</h3>
-                    <p className="text-xs text-slate-400">Citywide aggregate tracking.</p>
-                  </div>
-                </div>
-                <div className="h-[250px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={TIME_SERIES_DATA} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis 
-                        dataKey="date" 
-                        stroke="#64748b" 
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(val) => val.substring(5)}
-                      />
-                      <YAxis yAxisId="left" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="right" orientation="right" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                      <RechartsTooltip 
-                        contentStyle={{ backgroundColor: '#1A1A1C', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                        itemStyle={{ fontSize: '12px' }}
-                        labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}
-                      />
-                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                      <Line yAxisId="left" type="monotone" dataKey="actualCalls" name="911 Calls" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                      <Line yAxisId="right" type="monotone" dataKey="sentimentScore" name="Negative Sentiment" stroke="#f43f5e" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Selected District Details or List */}
-              <div className="rounded-2xl border border-white/10 bg-[#141415] p-5 flex flex-col">
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-white">District Focus</h3>
-                  <p className="text-xs text-slate-400">Detailed metrics for selected area.</p>
-                </div>
-                
-                {selectedDistrict ? (
-                  <div className="flex-1 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-semibold text-white">{selectedDistrict.name}</h4>
-                      <button 
-                        onClick={() => setSelectedDistrict(null)}
-                        className="text-[10px] text-slate-400 hover:text-white uppercase tracking-wider"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-white/5 p-3">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Actual Risk</p>
-                        <p className="text-xl font-mono text-white">{selectedDistrict.actualSafetyScore}</p>
-                      </div>
-                      <div className="rounded-lg bg-white/5 p-3">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Perceived Risk</p>
-                        <p className="text-xl font-mono text-white">{selectedDistrict.perceptionScore}</p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-white/5 bg-white/5 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-slate-400">Misalignment</span>
-                        <span className={cn(
-                          "text-sm font-mono font-medium px-2 py-0.5 rounded-full",
-                          selectedDistrict.misalignmentIndex > 15 ? "bg-rose-500/20 text-rose-400" : 
-                          selectedDistrict.misalignmentIndex < -5 ? "bg-emerald-500/20 text-emerald-400" : 
-                          "bg-blue-500/20 text-blue-400"
-                        )}>
-                          {selectedDistrict.misalignmentIndex > 0 ? '+' : ''}{selectedDistrict.misalignmentIndex}
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full",
-                            selectedDistrict.misalignmentIndex > 15 ? "bg-rose-500" : 
-                            selectedDistrict.misalignmentIndex < -5 ? "bg-emerald-500" : 
-                            "bg-blue-500"
-                          )}
-                          style={{ width: `${Math.min(Math.max((selectedDistrict.misalignmentIndex + 50) / 100 * 100, 0), 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-auto space-y-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400 flex items-center gap-1.5"><Activity size={14} /> 911 Calls</span>
-                        <span className="text-white font-mono">{selectedDistrict.calls911.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400 flex items-center gap-1.5"><MessageSquareWarning size={14} /> Top Issue</span>
-                        <span className="text-white">{selectedDistrict.topIssue}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400 flex items-center gap-1.5"><TrendingUp size={14} /> Sentiment</span>
-                        <span className={cn(
-                          "capitalize",
-                          selectedDistrict.sentimentTrend === 'worsening' ? "text-rose-400" :
-                          selectedDistrict.sentimentTrend === 'improving' ? "text-emerald-400" :
-                          "text-slate-300"
-                        )}>{selectedDistrict.sentimentTrend}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col">
-                    <div className="flex-1 flex items-center justify-center text-center p-6 border-2 border-dashed border-white/5 rounded-xl">
-                      <div>
-                        <Map className="mx-auto h-8 w-8 text-slate-600 mb-2" />
-                        <p className="text-xs text-slate-400">Select a district on the map or scatter plot to view detailed metrics.</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <h4 className="text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-2">Highest Misalignment</h4>
-                      <div className="space-y-2">
-                        {[...MOCK_DISTRICTS].sort((a, b) => b.misalignmentIndex - a.misalignmentIndex).slice(0, 3).map(d => (
-                          <div key={d.id} className="flex items-center justify-between text-xs p-2 rounded bg-white/5 hover:bg-white/10 cursor-pointer transition-colors" onClick={() => setSelectedDistrict(d)}>
-                            <span className="text-slate-300">{d.name}</span>
-                            <span className="text-rose-400 font-mono">+{d.misalignmentIndex}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Data Grid */}
-            <div className="rounded-2xl border border-white/10 bg-[#141415] overflow-hidden">
-              <div className="p-5 border-b border-white/10 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-white">District Data Grid</h3>
-                  <p className="text-xs text-slate-400">Comprehensive view of all safety signals.</p>
-                </div>
-                <button className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
-                  View Full Table &rarr;
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-white/5 text-slate-400">
-                    <tr>
-                      <th className="px-5 py-3 font-medium">District</th>
-                      <th className="px-5 py-3 font-medium">Population</th>
-                      <th className="px-5 py-3 font-medium">911 Calls</th>
-                      <th className="px-5 py-3 font-medium">Actual Risk</th>
-                      <th className="px-5 py-3 font-medium">Perceived Risk</th>
-                      <th className="px-5 py-3 font-medium">Misalignment</th>
-                      <th className="px-5 py-3 font-medium">Top Public Concern</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {MOCK_DISTRICTS.map((district) => (
-                      <tr key={district.id} className="hover:bg-white/[0.02] transition-colors cursor-pointer" onClick={() => setSelectedDistrict(district)}>
-                        <td className="px-5 py-3 font-medium text-white">{district.name}</td>
-                        <td className="px-5 py-3 text-slate-400 font-mono">{district.population.toLocaleString()}</td>
-                        <td className="px-5 py-3 text-slate-400 font-mono">{district.calls911.toLocaleString()}</td>
-                        <td className="px-5 py-3 text-slate-400 font-mono">{district.actualSafetyScore}</td>
-                        <td className="px-5 py-3 text-slate-400 font-mono">{district.perceptionScore}</td>
-                        <td className="px-5 py-3">
-                          <span className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium",
-                            district.misalignmentIndex > 15 ? "bg-rose-500/10 text-rose-400" : 
-                            district.misalignmentIndex < -5 ? "bg-emerald-500/10 text-emerald-400" : 
-                            "bg-blue-500/10 text-blue-400"
-                          )}>
-                            {district.misalignmentIndex > 0 ? '+' : ''}{district.misalignmentIndex}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-slate-300">{district.topIssue}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-              </>
-            )}
 
             {activeTab === 'incidents' && (
               <IncidentMapDashboard dateRange={dateRange} />
