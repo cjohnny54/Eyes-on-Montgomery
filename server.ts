@@ -1,4 +1,5 @@
 import express from "express";
+import "dotenv/config";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 
@@ -60,7 +61,11 @@ async function startServer() {
       let searchResult;
       try {
         // 1. Call Bright Data Web Scraper API directly
-        const COLLECTOR_ID = "gd_lwxkxvnf1cynvib9co"; // X.com scraper
+        const COLLECTOR_ID = process.env.BRIGHT_DATA_COLLECTOR_ID || "gd_lwxkxvnf1cynvib9co"; // Fallback to X.com scraper if not env set
+        
+        if (!process.env.BRIGHT_DATA_COLLECTOR_ID) {
+          console.warn("BRIGHT_DATA_COLLECTOR_ID is not set in environment. Using default.");
+        }
         
         // Use user keywords if provided, otherwise use defaults
         const keywordsToSearch = userKeywords ? 
