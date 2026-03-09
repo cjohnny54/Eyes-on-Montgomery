@@ -5,9 +5,9 @@
 
 import React, { useState } from 'react';
 import { 
-  Activity, AlertTriangle, Map, 
+  Activity, AlertTriangle, 
   MessageSquareWarning, ShieldAlert, TrendingUp, Users,
-  Search, Bell, Settings, Menu, MapPin, BookOpen, Clock
+  Search, Bell, Settings, Menu, MapPin, Clock
 } from 'lucide-react';
 import { 
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
@@ -20,7 +20,6 @@ import { cn } from './utils';
 
 import { TrafficHotspotsDashboard } from './TrafficHotspotsDashboard';
 import { PublicSentimentDashboard } from './PublicSentimentDashboard';
-import { DocumentationDashboard } from './DocumentationDashboard';
 import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
 import { ServiceMapDashboard } from './ServiceMapDashboard';
 
@@ -79,12 +78,10 @@ export default function App() {
             <p className="px-3 text-[10px] font-mono text-slate-500 uppercase tracking-wider mb-2">Dashboards</p>
             <NavItem icon={<Activity size={16} />} label="Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
             <NavItem icon={<MapPin size={16} />} label="District Incidents" active={activeTab === 'incidents'} onClick={() => setActiveTab('incidents')} />
-            <NavItem icon={<Map size={16} />} label="Live Crime Map" active={activeTab === 'map'} onClick={() => setActiveTab('map')} />
             <NavItem icon={<Users size={16} />} label="311 Service Requests" active={activeTab === '311'} onClick={() => setActiveTab('311')} />
             <NavItem icon={<Clock size={16} />} label="City Responsiveness" active={activeTab === 'responsiveness'} onClick={() => setActiveTab('responsiveness')} />
             <NavItem icon={<MapPin size={16} />} label="Traffic Hotspots" active={activeTab === 'traffic'} onClick={() => setActiveTab('traffic')} />
             <NavItem icon={<MessageSquareWarning size={16} />} label="Public Sentiment" active={activeTab === 'sentiment'} onClick={() => setActiveTab('sentiment')} />
-            <NavItem icon={<BookOpen size={16} />} label="Documentation" active={activeTab === 'docs'} onClick={() => setActiveTab('docs')} />
           </nav>
 
           <div className="mt-auto">
@@ -112,22 +109,18 @@ export default function App() {
                 <h2 className="text-2xl font-semibold tracking-tight text-white mb-1">
                   {activeTab === 'overview' && 'Citywide Safety Intelligence'}
                   {activeTab === 'incidents' && 'Montgomery Community Safety Lens'}
-                  {activeTab === 'map' && 'Live Crime Map'}
                   {activeTab === 'sentiment' && 'Public Sentiment'}
                   {activeTab === '311' && '311 Service Requests'}
                   {activeTab === 'responsiveness' && 'City Responsiveness Metrics'}
                   {activeTab === 'traffic' && 'Traffic Hotspots'}
-                  {activeTab === 'docs' && 'System Documentation'}
                 </h2>
                 <p className="text-sm text-slate-400">
                   {activeTab === 'overview' && 'Analyzing the gap between actual incidents and public perception.'}
                   {activeTab === 'incidents' && 'Live 311 and code violation incidents mapped to city council districts.'}
-                  {activeTab === 'map' && 'Official Montgomery Open Data Portal Integration'}
                   {activeTab === 'sentiment' && 'Real-time social media and news comment analysis.'}
                   {activeTab === '311' && `A ${dateRange.toLowerCase()} historical analysis of neighborhood service demand.`}
                   {activeTab === 'responsiveness' && `Analyzing 311 resolution speeds for the ${dateRange.toLowerCase()} period.`}
                   {activeTab === 'traffic' && 'Identifying high-priority traffic safety and nuisance areas.'}
-                  {activeTab === 'docs' && 'Architecture, data sources, and methodologies.'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -476,16 +469,6 @@ export default function App() {
               <TrafficHotspotsDashboard dateRange={dateRange} />
             )}
 
-            {activeTab === 'map' && (
-              <div className="h-[calc(100vh-200px)] w-full rounded-2xl border border-white/10 bg-[#141415] overflow-hidden flex flex-col">
-                <iframe 
-                  src="https://opendata.montgomeryal.gov/apps/09d20d8ee55e4761a04a6e7f0f0193c7/explore" 
-                  className="w-full flex-1 border-0 bg-white"
-                  title="Montgomery Crime Map"
-                />
-              </div>
-            )}
-
             {activeTab === '311' && (
               <ServiceMapDashboard dateRange={dateRange} />
             )}
@@ -496,10 +479,6 @@ export default function App() {
 
             {activeTab === 'responsiveness' && (
               <CityResponsivenessDashboard dateRange={dateRange} />
-            )}
-
-            {activeTab === 'docs' && (
-              <DocumentationDashboard />
             )}
 
           </div>
