@@ -12,7 +12,6 @@ import { IncidentMapDashboard } from './IncidentMapDashboard';
 import { cn } from './utils';
 
 import { TrafficHotspotsDashboard } from './TrafficHotspotsDashboard';
-import { PublicSentimentDashboard } from './PublicSentimentDashboard';
 import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
 import { ServiceMapDashboard } from './ServiceMapDashboard';
 
@@ -68,7 +67,6 @@ export default function App() {
             <NavItem icon={<Users size={16} />} label="311 Service Requests" active={activeTab === '311'} onClick={() => setActiveTab('311')} />
             <NavItem icon={<Clock size={16} />} label="City Responsiveness" active={activeTab === 'responsiveness'} onClick={() => setActiveTab('responsiveness')} />
             <NavItem icon={<MapPin size={16} />} label="Traffic Hotspots" active={activeTab === 'traffic'} onClick={() => setActiveTab('traffic')} />
-            <NavItem icon={<MessageSquareWarning size={16} />} label="Public Sentiment" active={activeTab === 'sentiment'} onClick={() => setActiveTab('sentiment')} />
           </nav>
 
           <div className="mt-auto">
@@ -95,14 +93,12 @@ export default function App() {
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight text-white mb-1">
                   {activeTab === 'incidents' && 'Montgomery Eyes on our Community'}
-                  {activeTab === 'sentiment' && 'Public Sentiment'}
                   {activeTab === '311' && '311 Service Requests'}
                   {activeTab === 'responsiveness' && 'City Responsiveness Metrics'}
                   {activeTab === 'traffic' && 'Traffic Hotspots'}
                 </h2>
                 <p className="text-sm text-slate-400">
                   {activeTab === 'incidents' && 'Live 311 and code violation incidents mapped to city council districts.'}
-                  {activeTab === 'sentiment' && 'Real-time social media and news comment analysis.'}
                   {activeTab === '311' && `A ${dateRange.toLowerCase()} historical analysis of neighborhood service demand.`}
                   {activeTab === 'responsiveness' && `Analyzing 311 resolution speeds for the ${dateRange.toLowerCase()} period.`}
                   {activeTab === 'traffic' && 'Identifying high-priority traffic safety and nuisance areas.'}
@@ -133,10 +129,6 @@ export default function App() {
 
             {activeTab === '311' && (
               <ServiceMapDashboard dateRange={dateRange} />
-            )}
-
-            {activeTab === 'sentiment' && (
-              <PublicSentimentDashboard />
             )}
 
             {activeTab === 'responsiveness' && (
