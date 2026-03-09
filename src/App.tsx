@@ -131,9 +131,6 @@ export default function App() {
                   <option value="Year to Date">Year to Date</option>
                   <option value="3 Years">3 Years</option>
                 </select>
-                <button className="h-9 rounded-lg bg-white text-black px-4 text-xs font-medium hover:bg-slate-200 transition-colors">
-                  Export Report
-                </button>
               </div>
             </div>
 
