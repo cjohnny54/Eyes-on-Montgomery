@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add AI-powered features to the Montgomery City Responsiveness dashboard using Google Gemini 3. The feature set includes predictive analytics, anomaly detection, automated insights, and natural language querying.
+Add AI-powered features to the Montgomery City Responsiveness dashboard using Google Gemini. The feature set includes predictive analytics, anomaly detection, automated insights, and natural language querying.
 
 ## Data Sources
 
@@ -39,6 +39,17 @@ Left nav: New "AI Insights" menu item with:
 - Send aggregated stats to Gemini (not raw 207K records)
 - Estimate: ~700-1500 tokens per query
 - Cache responses in memory for demo reuse
+
+### Error Handling
+
+- API timeout after 30 seconds with user-friendly error message
+- Fallback: "Unable to generate insights at this time. Please try again."
+- Log errors for debugging
+
+### API Key Management
+
+- Store in environment variable: `GEMINI_API_KEY`
+- Validate key exists on server startup
 
 ## Functionality
 
