@@ -27,39 +27,44 @@ async function callGemini(prompt: string, model: string = "gemini-3.1-pro-previe
 }
 
 async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
-  // We use the SERP API directly via HTTP. 
-  // We try to use a common zone name 'serp_api1' or let the user provide one.
-  const zone = process.env.BRIGHT_DATA_ZONE || 'serp_api1';
+  // Try these common zone names in order
+  const zonesToTry = [
+    process.env.BRIGHT_DATA_ZONE,
+    'serp_api1',
+    'serp_api_1',
+    'serp'
+  ].filter(Boolean);
   
-  // Note: Bright Data SERP API endpoint for direct POST
   const url = `https://api.brightdata.com/request?brd_json=1`;
   
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        zone: zone,
-        url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
-        format: 'json'
-      })
-    });
+  for (const zone of zonesToTry) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          zone: zone,
+          url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+          format: 'json'
+        })
+      });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.warn(`Bright Data scrape failed for ${query} | Status: ${response.status} | Body: ${errorBody}`);
-      return [];
+      if (response.ok) {
+        const data = await response.json();
+        return data.organic || [];
+      } else {
+        const errorBody = await response.text();
+        console.warn(`Bright Data scrape attempt failed for query "${query}" using zone "${zone}". Status: ${response.status}. Body: ${errorBody}`);
+      }
+    } catch (err) {
+      console.error(`Fetch error for zone ${zone}:`, err);
     }
-
-    const data = await response.json();
-    return data.organic || [];
-  } catch (err) {
-    console.error(`Error scraping Bright Data for ${query}:`, err);
-    return [];
   }
+
+  return [];
 }
 
 function getMockSentimentData() {
