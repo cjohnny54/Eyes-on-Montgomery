@@ -261,7 +261,7 @@ Answer:`;
       if (Array.isArray(results)) {
         textContent = results.slice(0, 10).map(r => `[${r.link}] ${r.title}: ${r.snippet || r.description || ''}`).join('\n');
       } else {
-        textContent = (results as string).substring(0, 15000);
+        textContent = (results as string).substring(0, 7000);
       }
 
       console.log(`[Sentiment] Sending ${textContent.length} chars to Gemini for analysis...`);

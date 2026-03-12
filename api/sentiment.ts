@@ -146,8 +146,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `[${r.link}] ${r.title}: ${r.snippet || r.description || ''}`
       ).join('\n');
     } else {
-      // Handle raw HTML from Web Unblocker
-      textContent = results.substring(0, 15000); 
+      // Handle raw HTML from Web Unblocker - trim more aggressively to save quota
+      textContent = results.substring(0, 7000); 
     }
 
     const prompt = `You are a civic sentiment analyst for Montgomery, Alabama. Analyze the following scraped web content and extract public sentiment about Montgomery city services.
