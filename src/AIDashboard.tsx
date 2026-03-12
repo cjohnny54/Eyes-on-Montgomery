@@ -27,6 +27,7 @@ export function AIDashboard({ dateRange = 'Last 30 Days' }: { dateRange?: string
   const [insights, setInsights] = useState<StructuredInsight[]>([]);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [answerIsLive, setAnswerIsLive] = useState(false);
   const [queryLoading, setQueryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,7 +56,8 @@ export function AIDashboard({ dateRange = 'Last 30 Days' }: { dateRange?: string
         .filter(r => r.success && r.insight)
         .map((r, i) => ({
           ...(r.insight as any),
-          type: types[i]
+          type: types[i],
+          isLive: r.isLive
         }));
       
       setInsights(newInsights);
@@ -76,6 +78,7 @@ export function AIDashboard({ dateRange = 'Last 30 Days' }: { dateRange?: string
       const result = await askAIQuestion(question, stats);
       if (result.success) {
         setAnswer(result.answer || '');
+        setAnswerIsLive(!!result.isLive);
       } else {
         setError(result.error || 'Failed to get answer');
       }
@@ -188,6 +191,11 @@ export function AIDashboard({ dateRange = 'Last 30 Days' }: { dateRange?: string
                       {item.severity} SEVERITY
                     </span>
                   )}
+                  {(item as any).isLive && (
+                    <span className="px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                      <Zap size={10} fill="currentColor" /> LIVE AI
+                    </span>
+                  )}
                   {item.probability && (
                     <div className="text-right">
                       <span className="text-[10px] font-mono text-slate-500 uppercase block mb-1">PROBABILITY</span>
@@ -278,6 +286,9 @@ export function AIDashboard({ dateRange = 'Last 30 Days' }: { dateRange?: string
                   <div className="flex items-center gap-2 mb-6 border-b border-white/5 pb-4">
                     <Sparkles size={18} className="text-emerald-400" />
                     <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest font-bold">Intelligence Feed Output</span>
+                    {answerIsLive && (
+                      <span className="ml-auto px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-bold">LIVE AI</span>
+                    )}
                   </div>
                   
                   <p className="text-base text-slate-200 leading-relaxed whitespace-pre-line font-medium mb-6">

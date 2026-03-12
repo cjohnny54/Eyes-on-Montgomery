@@ -36,13 +36,16 @@ Data: ${JSON.stringify(data)}
 Answer:`;
 
     let answer;
+    let isLive = false;
     try {
       answer = await callGemini(prompt);
+      isLive = true;
     } catch (err) {
       answer = "I'm currently unable to process complex AI queries. However, my quick-look data shows steady progress on city services in Montgomery today.";
+      isLive = false;
     }
 
-    res.json({ success: true, answer });
+    res.json({ success: true, answer, isLive });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

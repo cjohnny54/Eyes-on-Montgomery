@@ -1,9 +1,10 @@
 interface AIResponse {
   success: boolean;
-  insight?: string;
+  insight?: any;
   answer?: string;
   error?: string;
   cached?: boolean;
+  isLive?: boolean;
 }
 
 interface StatsData {

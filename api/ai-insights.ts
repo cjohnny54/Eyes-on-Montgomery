@@ -80,6 +80,7 @@ Respond with ONLY a JSON object:
       const lastBrace = geminiResponse.lastIndexOf('}');
       if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON found");
       response = JSON.parse(geminiResponse.substring(firstBrace, lastBrace + 1));
+      response.isLive = true;
     } catch (err) {
       console.error("Gemini failed, using fallback:", err);
       // Fallback data
@@ -104,10 +105,11 @@ Respond with ONLY a JSON object:
           severity: "LOW"
         };
       }
+      (response as any).isLive = false;
     }
 
     aiCache.set(cacheKey, { response, timestamp: Date.now() });
-    res.json({ success: true, insight: response });
+    res.json({ success: true, insight: response, isLive: response.isLive });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

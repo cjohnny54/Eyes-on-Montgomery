@@ -151,6 +151,7 @@ Respond with ONLY a JSON object:
         const lastBrace = geminiResponse.lastIndexOf('}');
         const cleanJson = geminiResponse.substring(firstBrace, lastBrace + 1);
         insightData = JSON.parse(cleanJson);
+        insightData.isLive = true;
       } catch (geminiError) {
         console.warn("AI insights generation failed, using fallback:", geminiError);
         // Professional Fallback Mock Data
@@ -175,10 +176,11 @@ Respond with ONLY a JSON object:
             points: ["Public Works continues to be the primary driver of city requests", "Response efficiency has improved by 4.2% since last reporting period", "District 2 shows highest resolution rate for code enforcement"],
           };
         }
+        insightData.isLive = false;
       }
 
       aiCache.set(cacheKey, { response: JSON.stringify(insightData), timestamp: Date.now() });
-      res.json({ success: true, insight: insightData });
+      res.json({ success: true, insight: insightData, isLive: insightData.isLive });
     } catch (error: any) {
       console.error("AI insights error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to generate insights" });
@@ -213,15 +215,18 @@ Data: ${JSON.stringify(data)}
 Answer:`;
 
       let response;
+      let isLive = false;
       try {
         response = await callGemini(prompt, "gemini-3.1-pro-preview");
+        isLive = true;
       } catch (geminiError) {
         console.warn("AI query failed, using fallback:", geminiError);
         response = "I'm currently having trouble connecting to my central cognition engine. However, based on the cached data, I can see that District 3 and District 5 are currently seeing the highest volume of reports, primarily related to Sanitation and Public Works.";
+        isLive = false;
       }
 
       aiCache.set(cacheKey, { response, timestamp: Date.now() });
-      res.json({ success: true, answer: response });
+      res.json({ success: true, answer: response, isLive });
     } catch (error: any) {
       console.error("AI query error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to answer question" });
