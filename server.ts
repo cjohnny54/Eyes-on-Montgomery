@@ -15,7 +15,7 @@ async function startServer() {
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   // Helper function to call Gemini REST API
-  async function callGemini(prompt: string, model: string = "gemini-3-flash-preview"): Promise<string> {
+  async function callGemini(prompt: string, model: string = "gemini-3.1-pro-preview"): Promise<string> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY not configured");
@@ -98,7 +98,7 @@ Respond with ONLY a JSON object:
 
       let insightData;
       try {
-        const geminiResponse = await callGemini(prompt, "gemini-3-flash-preview");
+        const geminiResponse = await callGemini(prompt, "gemini-3.1-pro-preview");
         
         // Professional JSON extraction
         const firstBrace = geminiResponse.indexOf('{');
@@ -168,7 +168,7 @@ Answer:`;
 
       let response;
       try {
-        response = await callGemini(prompt, "gemini-3-flash-preview");
+        response = await callGemini(prompt, "gemini-3.1-pro-preview");
       } catch (geminiError) {
         console.warn("AI query failed, using fallback:", geminiError);
         response = "I'm currently having trouble connecting to my central cognition engine. However, based on the cached data, I can see that District 3 and District 5 are currently seeing the highest volume of reports, primarily related to Sanitation and Public Works.";

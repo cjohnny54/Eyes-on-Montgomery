@@ -76,7 +76,7 @@ Add a "Montgomery Voice" menu item to the left sidebar that scrapes social media
 ## Gemini 3 Integration
 
 ### Model
-- `gemini-3-flash-preview` (via existing AI service)
+- `gemini-3.1-pro-preview` (via existing AI service)
 
 ### Analysis Prompt
 For each scraped content:
@@ -107,5 +107,5 @@ If Gemini 3 unavailable, use keyword-based sentiment:
 4. ✅ If env vars present: Attempts to scrape via Bright Data API
 5. ✅ Dashboard displays: sentiment score, trend, keywords, categories, quotes
 6. ✅ UI matches existing dark theme and design patterns
-7. ✅ Uses `gemini-3-flash-preview` for AI analysis when available
+7. ✅ Uses `gemini-3.1-pro-preview` for AI analysis when available
 8. ✅ Component renders without errors in both modes
