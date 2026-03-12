@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import {
   MessageSquareWarning, ShieldAlert, Users,
-  Search, Bell, Settings, MapPin, Clock
+  Search, Bell, Settings, MapPin, Clock, Sparkles
 } from 'lucide-react';
 import { IncidentMapDashboard } from './IncidentMapDashboard';
 import { cn } from './utils';
@@ -15,6 +15,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { TrafficHotspotsDashboard } from './TrafficHotspotsDashboard';
 import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
 import { ServiceMapDashboard } from './ServiceMapDashboard';
+import { AIDashboard } from './AIDashboard';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('incidents');
@@ -68,6 +69,7 @@ export default function App() {
             <NavItem icon={<Users size={16} />} label="311 Service Requests" active={activeTab === '311'} onClick={() => setActiveTab('311')} />
             <NavItem icon={<Clock size={16} />} label="City Responsiveness" active={activeTab === 'responsiveness'} onClick={() => setActiveTab('responsiveness')} />
             <NavItem icon={<MapPin size={16} />} label="Traffic Hotspots" active={activeTab === 'traffic'} onClick={() => setActiveTab('traffic')} />
+            <NavItem icon={<Sparkles size={16} />} label="AI Insights" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
           </nav>
 
           <div className="mt-auto">
@@ -97,12 +99,14 @@ export default function App() {
                   {activeTab === '311' && '311 Service Requests'}
                   {activeTab === 'responsiveness' && 'City Responsiveness Metrics'}
                   {activeTab === 'traffic' && 'Traffic Hotspots'}
+                  {activeTab === 'ai' && 'AI-Powered Insights'}
                 </h2>
                 <p className="text-sm text-slate-400">
                   {activeTab === 'incidents' && 'Live 311 and code violation incidents mapped to city council districts.'}
                   {activeTab === '311' && `A ${dateRange.toLowerCase()} historical analysis of neighborhood service demand.`}
                   {activeTab === 'responsiveness' && `Analyzing 311 resolution speeds for the ${dateRange.toLowerCase()} period.`}
                   {activeTab === 'traffic' && 'Identifying high-priority traffic safety and nuisance areas.'}
+                  {activeTab === 'ai' && 'AI-generated insights, predictions, and natural language queries.'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -141,6 +145,12 @@ export default function App() {
             {activeTab === 'responsiveness' && (
               <ErrorBoundary>
                 <CityResponsivenessDashboard dateRange={dateRange} />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'ai' && (
+              <ErrorBoundary>
+                <AIDashboard dateRange={dateRange} />
               </ErrorBoundary>
             )}
 
