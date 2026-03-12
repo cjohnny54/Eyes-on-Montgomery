@@ -10,5 +10,5 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true # Helps with file watching on Windows/WSL
+      - NODE_ENV=production
+      # - CHOKIDAR_USEPOLLING=true # Helps with file watching on Windows/WSL
