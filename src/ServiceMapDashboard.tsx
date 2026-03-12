@@ -47,7 +47,7 @@ export function ServiceMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange?
       // 1. Fetch District Polygons (if not loaded)
       let districtGeo = geoJsonData;
       if (!districtGeo) {
-        const distResponse = await fetch('https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0/query?where=1%3D1&outFields=*&f=geojson');
+        const distResponse = await fetch('https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3/query?where=1%3D1&outFields=*&f=geojson');
         districtGeo = await distResponse.json();
         setGeoJsonData(districtGeo);
       }
@@ -106,13 +106,27 @@ export function ServiceMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange?
         else if (dept.includes('Street') || dept.includes('Works')) category = 'Public Works';
         else if (dept.includes('Code') || type.toLowerCase().includes('nuisance') || type.toLowerCase().includes('weed')) category = 'Blight/Nuisance';
 
+        // Spatial Join: get district from data or point-in-polygon fallback
+        let assignedDistrictId: string | null = props.District ? String(props.District) : null;
+        if (!assignedDistrictId) {
+          turf.featureEach(districtGeo, (district) => {
+            if (assignedDistrictId) return;
+            if (district.geometry.type === 'Polygon' || district.geometry.type === 'MultiPolygon') {
+              if (turf.booleanPointInPolygon(turf.point(coords), district as any)) {
+                assignedDistrictId = district.properties?.DISTRICT || district.properties?.Id || 'Unknown';
+              }
+            }
+          });
+        }
+
+        const normalizedId = assignedDistrictId ? String(assignedDistrictId).replace(/\D/g, '') : 'Unknown';
         processedRequests.push({
           id: `311-${props.OBJECTID || index}`,
           coordinates: coords as [number, number],
           category,
           department: dept,
           type: type,
-          districtId: props.District ? String(props.District).replace(/\D/g, '') : 'Unknown',
+          districtId: normalizedId ? parseInt(normalizedId, 10).toString() : 'Unknown',
           createDate: props.Create_Date
         });
       });

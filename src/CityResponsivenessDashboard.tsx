@@ -77,11 +77,16 @@ export function CityResponsivenessDashboard({ dateRange = 'Last 30 Days' }: { da
         deptStat.volume++;
 
         if (closeDate && createDate) {
-          const days = (closeDate - createDate) / (1000 * 60 * 60 * 24);
-          if (days >= 0) {
-            dStat.closed++;
-            dStat.totalDays += days;
-            deptStat.totalDays += days;
+          // Parse dates properly - API returns ISO date strings, not Unix timestamps
+          const createTime = new Date(createDate).getTime();
+          const closeTime = new Date(closeDate).getTime();
+          if (!isNaN(createTime) && !isNaN(closeTime)) {
+            const days = (closeTime - createTime) / (1000 * 60 * 60 * 24);
+            if (days >= 0) {
+              dStat.closed++;
+              dStat.totalDays += days;
+              deptStat.totalDays += days;
+            }
           }
         }
       });
@@ -121,9 +126,19 @@ export function CityResponsivenessDashboard({ dateRange = 'Last 30 Days' }: { da
     fetchData();
   }, [dateRange]);
 
-  const overallAvg = useMemo(() => 
-    stats.reduce((acc, s) => acc + s.avgResolutionDays, 0) / (stats.length || 1), 
+  const overallAvg = useMemo(() =>
+    stats.reduce((acc, s) => acc + s.avgResolutionDays, 0) / (stats.length || 1),
   [stats]);
+
+  const overallClosureRate = useMemo(() => {
+    const totalClosed = stats.reduce((acc, s) => acc + s.closedCount, 0);
+    const totalRequests = stats.reduce((acc, s) => acc + s.totalRequests, 0);
+    return totalRequests > 0 ? parseFloat(((totalClosed / totalRequests) * 100).toFixed(1)) : 0;
+  }, [stats]);
+
+  const totalOpenRequests = useMemo(() => {
+    return stats.reduce((acc, s) => acc + s.openCount, 0);
+  }, [stats]);
 
   if (loading) {
     return (
@@ -161,27 +176,27 @@ export function CityResponsivenessDashboard({ dateRange = 'Last 30 Days' }: { da
             <span className="text-4xl font-semibold text-white">{overallAvg.toFixed(1)}</span>
             <span className="text-sm text-slate-400">days</span>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-emerald-400 text-xs">
+          <div className="mt-4 flex items-center gap-2 text-slate-500 text-xs">
             <TrendingUp size={14} />
-            <span>-0.4 days from last month</span>
+            <span>Based on {dateRange.toLowerCase()} data</span>
           </div>
         </div>
         
         <div className="rounded-2xl border border-white/10 bg-[#141415] p-5 flex flex-col justify-between">
           <span className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Citywide Closure Rate</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-semibold text-white">82.4</span>
+            <span className="text-4xl font-semibold text-white">{overallClosureRate}</span>
             <span className="text-sm text-slate-400">%</span>
           </div>
           <div className="mt-4 w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500" style={{ width: '82.4%' }} />
+            <div className="h-full bg-emerald-500" style={{ width: `${overallClosureRate}%` }} />
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-[#141415] p-5 flex flex-col justify-between">
           <span className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Active Service Requests</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-semibold text-white">1,248</span>
+            <span className="text-4xl font-semibold text-white">{totalOpenRequests.toLocaleString()}</span>
           </div>
           <p className="mt-4 text-[10px] text-slate-500 uppercase tracking-widest">Awaiting department assignment</p>
         </div>

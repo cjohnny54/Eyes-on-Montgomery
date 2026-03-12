@@ -49,7 +49,7 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
       // 1. Fetch District GeoJSON
       let data = geoJsonData;
       if (!data) {
-        const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0/query?where=1%3D1&outFields=*&f=geojson');
+        const response = await fetch('https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3/query?where=1%3D1&outFields=*&f=geojson');
         if (!response.ok) {
           throw new Error('Failed to fetch district data');
         }

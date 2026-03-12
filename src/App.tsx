@@ -4,12 +4,13 @@
  */
 
 import React, { useState } from 'react';
-import { 
+import {
   MessageSquareWarning, ShieldAlert, Users,
   Search, Bell, Settings, MapPin, Clock
 } from 'lucide-react';
 import { IncidentMapDashboard } from './IncidentMapDashboard';
 import { cn } from './utils';
+import { ErrorBoundary } from './ErrorBoundary';
 
 import { TrafficHotspotsDashboard } from './TrafficHotspotsDashboard';
 import { CityResponsivenessDashboard } from './CityResponsivenessDashboard';
@@ -120,19 +121,27 @@ export default function App() {
 
 
             {activeTab === 'incidents' && (
-              <IncidentMapDashboard dateRange={dateRange} />
+              <ErrorBoundary>
+                <IncidentMapDashboard dateRange={dateRange} />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'traffic' && (
-              <TrafficHotspotsDashboard dateRange={dateRange} />
+              <ErrorBoundary>
+                <TrafficHotspotsDashboard dateRange={dateRange} />
+              </ErrorBoundary>
             )}
 
             {activeTab === '311' && (
-              <ServiceMapDashboard dateRange={dateRange} />
+              <ErrorBoundary>
+                <ServiceMapDashboard dateRange={dateRange} />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'responsiveness' && (
-              <CityResponsivenessDashboard dateRange={dateRange} />
+              <ErrorBoundary>
+                <CityResponsivenessDashboard dateRange={dateRange} />
+              </ErrorBoundary>
             )}
 
           </div>
