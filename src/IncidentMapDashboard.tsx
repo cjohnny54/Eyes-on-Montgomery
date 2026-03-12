@@ -243,8 +243,9 @@ export function IncidentMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange
       {/* Map Background */}
       <div className="absolute inset-0 z-0">
         <MapContainer 
-          center={[32.3500, -86.2700]} 
-          zoom={11} 
+          key="incident-map-v14"
+          center={[32.37, -86.28]} 
+          zoom={14} 
           style={{ height: '100%', width: '100%', backgroundColor: '#f3f4f6' }}
           zoomControl={true}
         >

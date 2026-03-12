@@ -167,7 +167,7 @@ export function ServiceMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange?
     console.log('Hex Grid Cells created:', grid.features.length);
     
     // Count points in hexes
-    const collected = turf.collect(grid, pointsFC, 'id', 'values');
+    const collected = turf.collect(grid, pointsFC as any, 'id', 'values');
     
     let maxCount = 0;
     const finalFeatures = collected.features.filter((f: any) => {
@@ -207,7 +207,7 @@ export function ServiceMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange?
     const pointsFC = turf.featureCollection(validPoints.map(p => turf.point(p.coordinates, { id: p.id })));
     const bbox = turf.bbox(geoJsonData);
     const grid = turf.hexGrid(bbox, 0.7, { units: 'kilometers' });
-    const collected = turf.collect(grid, pointsFC, 'id', 'values');
+    const collected = turf.collect(grid, pointsFC as any, 'id', 'values');
     
     let max = 0;
     const features = collected.features.filter((f: any) => {
@@ -226,8 +226,9 @@ export function ServiceMapDashboard({ dateRange = 'Last 30 Days' }: { dateRange?
       {/* Map Background */}
       <div className="absolute inset-0 z-0">
         <MapContainer 
-          center={[32.3500, -86.2700]} 
-          zoom={11} 
+          key="service-map-v14"
+          center={[32.37, -86.28]} 
+          zoom={14} 
           style={{ height: '100%', width: '100%', backgroundColor: '#f3f4f6' }}
           zoomControl={false}
         >

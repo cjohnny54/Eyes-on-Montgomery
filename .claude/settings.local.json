@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:8081/api/stats 2>/dev/null | head -c 500)",
+      "Bash(cd \"E:\\\\Montgomery_City_Responsiveness\" && npm run build 2>&1 | head -30)",
+      "Bash(cd /E/Montgomery_City_Responsiveness && npm run build 2>&1 | head -50)",
+      "Bash(docker ps:*)",
+      "Bash(cd /E/Montgomery_City_Responsiveness && docker-compose build --no-cache 2>&1)",
+      "Bash(cd /E/Montgomery_City_Responsiveness && docker-compose up -d 2>&1)",
+      "Bash(cd e:/Montgomery_City_Responsiveness && npm run build 2>&1)",
+      "Bash(cd /E/Montgomery_City_Responsiveness && npm run build 2>&1 | tail -15)",
+      "Bash(curl -s \"https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0?f=json\" | grep -o '\"fields\":\\\\[[^]]*\\\\]' | head -c 500)",
+      "Bash(curl -s \"https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0/query?where=1%3D1&outFields=*&f=json\" | grep -o '\"objectIdFieldName\":\"[^\"]*\"' && curl -s \"https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3/query?where=1%3D1&outFields=*&f=json\" | grep -o '\"objectIdFieldName\":\"[^\"]*\"')",
+      "Bash(echo \"=== Current \\(SDE_City_Council\\) ===\" && curl -s \"https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0?f=json\" | grep -o '\"name\":\"[^\"]*\"' | head -5 && echo \"\" && echo \"=== New \\(OneView/City_Council_District\\) ===\" && curl -s \"https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3?f=json\" | grep -o '\"name\":\"[^\"]*\"' | head -5)",
+      "Bash(curl -s \"https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3?f=json\" | grep -o '\"name\":\"[^\"]*\"' | head -5)",
+      "Bash(curl -s \"https://gis.montgomeryal.gov/server/rest/services/OneView/City_Council_District/MapServer/3?f=json\" | grep -o '\"name\":\"[^\"]*\"' | head -20)",
+      "Bash(curl -s \"https://gis.montgomeryal.gov/server/rest/services/SDE_City_Council/MapServer/0?f=json\" | grep -o '\"name\":\"[^\"]*\"' | head -8)",
+      "Bash(cd /E/Montgomery_City_Responsiveness && docker-compose up --build -d)",
+      "Bash(docker port:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl -v http://localhost:8081/api/env 2>&1 | head -30)",
+      "Bash(ls \"E:/montgomery-safety-reality-&-perception-lens/\" | grep -i server)",
+      "Bash(cd \"E:/Montgomery_City_Responsiveness\" && timeout 15 npm run dev 2>&1 || true)",
+      "Bash(cd \"E:/Montgomery_City_Responsiveness\" && npx ts-node --skip-project --transpile-only -e \"import\\('./server.ts'\\)\" 2>&1 | head -30)",
+      "Bash(sleep 5 && curl -X POST http://localhost:3000/api/sentiment -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(cd \"E:/Montgomery_City_Responsiveness\" && npx tsc --noEmit server.ts 2>&1)",
+      "Bash(curl -X POST http://localhost:3000/api/sentiment -H \"Content-Type: application/json\" -d '{}' 2>&1)",
+      "Bash(sleep 4 && curl -X POST http://localhost:3000/api/sentiment -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(npx tsx:*)",
+      "Bash(cd E:/Montgomery_City_Responsiveness && node -e \"require\\('./server.ts'\\)\" 2>&1 || true)",
+      "Bash(curl -X POST http://localhost:3000/api/sentiment -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(netstat -ano | grep 3001 | head -3)",
+      "Bash(curl -s -X POST http://localhost:3000/api/sentiment -H \"Content-Type: application/json\" -d '{}')"
+    ]
+  }
+}

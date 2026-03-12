@@ -193,7 +193,7 @@ export function TrafficHotspotsDashboard({ dateRange = 'Last 30 Days' }: { dateR
       const hexGridFeatures = turf.hexGrid(bbox, 0.5, { units: 'kilometers' });
 
       // Count points in each hex
-      const hexGridWithCounts = turf.collect(hexGridFeatures, pointsFeatureCollection, 'dataset', 'values');
+      const hexGridWithCounts = turf.collect(hexGridFeatures, pointsFeatureCollection as any, 'dataset', 'values');
       
       // Calculate max count for color scaling
       let maxCount = 0;
@@ -304,8 +304,9 @@ export function TrafficHotspotsDashboard({ dateRange = 'Last 30 Days' }: { dateR
       {/* Map Background */}
       <div className="absolute inset-0 z-0">
         <MapContainer 
-          center={[32.3500, -86.2700]} 
-          zoom={11} 
+          key="traffic-map-v14"
+          center={[32.37, -86.28]} 
+          zoom={14} 
           style={{ height: '100%', width: '100%', backgroundColor: '#f3f4f6' }}
           zoomControl={true}
         >
