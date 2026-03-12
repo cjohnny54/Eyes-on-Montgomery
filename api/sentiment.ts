@@ -26,27 +26,22 @@ async function callGemini(prompt: string, model: string = "gemini-3.1-pro-previe
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated";
 }
 
-async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
-  // Common SERP zone name patterns in Bright Data
+async function scrapeBrightData(query: string, apiKey: string): Promise<any | any[]> {
   const zonesToTry = [
     process.env.BRIGHT_DATA_ZONE,
     'mcp_unlocker',
     'mcp_browser',
     'serp_api1',
-    'serp_api_1',
     'google',
-    'google_search',
-    'default',
-    'main'
+    'google_search'
   ].filter(Boolean) as string[];
   
-  // Try both the simplified endpoint and the explicit one
-  const url = `https://api.brightdata.com/request?brd_json=1`;
+  const url = `https://api.brightdata.com/request`; // Direct endpoint
   
   for (const zone of zonesToTry) {
     try {
       console.log(`[Scraper] Attempting scrape with zone: ${zone}`);
-      const response = await fetch(url, {
+      const response = await fetch(`${url}?brd_json=1`, { // Try JSON mode first
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -64,24 +59,32 @@ async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
       if (response.ok) {
         try {
           const data = JSON.parse(body);
+          // If it's a SERP API zone, it has 'organic'
           if (data && data.organic) {
-            console.log(`[Scraper] SUCCESS using zone ${zone}: Found ${data.organic.length} results`);
+            console.log(`[Scraper] SUCCESS using SERP Zone ${zone}`);
             return data.organic;
           }
+          // If it's an Unblocker zone returning JSON wrapper
+          if (data && (data.content || data.html)) {
+            console.log(`[Scraper] SUCCESS using Unblocker Zone ${zone} (JSON wrapped)`);
+            return data.content || data.html;
+          }
         } catch (e) {
-          console.warn(`[Scraper] Zone ${zone} returned non-JSON: ${body.substring(0, 500)}`);
+          // If it's not JSON, it might be raw HTML (common for mcp_unlocker)
+          if (body.toLowerCase().includes('<html')) {
+            console.log(`[Scraper] SUCCESS using Unblocker Zone ${zone} (Raw HTML)`);
+            return body;
+          }
         }
       } else {
-        console.warn(`[Scraper] Zone "${zone}" failed | Status: ${response.status} | Msg: ${body}`);
-        // If we get an "invalid zone" error specifically, we know this zone is wrong
-        // but if we get "unauthorized", there might be a key issue.
+        console.warn(`[Scraper] Zone "${zone}" status ${response.status}: ${body.substring(0, 100)}`);
       }
     } catch (err) {
       console.error(`[Scraper] System error for zone ${zone}:`, err);
     }
   }
 
-  return [];
+  return null;
 }
 
 function getMockSentimentData() {
@@ -125,7 +128,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const broadQuery = `${baseKeywords} Montgomery Alabama (site:reddit.com OR site:al.com OR site:wsfa.com)`;
     const results = await scrapeBrightData(broadQuery, brightDataKey);
 
-    if (results.length === 0) {
+    if (!results || (Array.isArray(results) && results.length === 0)) {
+      console.warn("Scraper returned no data for query:", broadQuery);
       return res.json({
         success: true,
         status: 'warning',
@@ -134,9 +138,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const textContent = results.slice(0, 12).map(r => 
-      `[${r.link}] ${r.title}: ${r.snippet || r.description || ''}`
-    ).join('\n').substring(0, 8000);
+    let textContent = "";
+    if (Array.isArray(results)) {
+      // Handle structured results from SERP API
+      textContent = results.slice(0, 10).map(r => 
+        `[${r.link}] ${r.title}: ${r.snippet || r.description || ''}`
+      ).join('\n');
+    } else {
+      // Handle raw HTML from Web Unblocker
+      textContent = results.substring(0, 15000); 
+    }
 
     const prompt = `You are a civic sentiment analyst for Montgomery, Alabama. Analyze the following scraped web content and extract public sentiment about Montgomery city services.
 
@@ -161,7 +172,7 @@ Respond with ONLY a JSON object:
     res.json({
       success: true,
       status: 'live',
-      message: `Analyzed ${results.length} live results`,
+      message: `Analyzed ${Array.isArray(results) ? results.length : 'document'} live results`,
       data: analysisData
     });
 
