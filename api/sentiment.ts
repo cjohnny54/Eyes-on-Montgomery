@@ -121,23 +121,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const baseKeywords = userKeywords || "Montgomery Alabama city services";
-    const queries = [
-      `site:reddit.com/r/montgomery ${baseKeywords}`,
-      `site:al.com Montgomery AL ${baseKeywords}`,
-      `site:wsfa.com Montgomery AL ${baseKeywords}`
-    ];
+    // Combine queries into a single search to stay within Vercel's 10s timeout
+    const broadQuery = `${baseKeywords} Montgomery Alabama (site:reddit.com OR site:al.com OR site:wsfa.com)`;
+    const results = await scrapeBrightData(broadQuery, brightDataKey);
 
-    let allResults: any[] = [];
-    for (const query of queries) {
-      const results = await scrapeBrightData(query, brightDataKey);
-      allResults = [...allResults, ...results];
+    if (results.length === 0) {
+      return res.json({
+        success: true,
+        status: 'warning',
+        message: 'No live search results found. Showing demo pulse data.',
+        data: getMockSentimentData()
+      });
     }
 
-    if (allResults.length === 0) {
-      throw new Error("No results found from Bright Data");
-    }
-
-    const textContent = allResults.slice(0, 15).map(r => 
+    const textContent = results.slice(0, 12).map(r => 
       `[${r.link}] ${r.title}: ${r.snippet || r.description || ''}`
     ).join('\n').substring(0, 8000);
 
@@ -164,7 +161,7 @@ Respond with ONLY a JSON object:
     res.json({
       success: true,
       status: 'live',
-      message: `Analyzed ${allResults.length} live results`,
+      message: `Analyzed ${results.length} live results`,
       data: analysisData
     });
 
