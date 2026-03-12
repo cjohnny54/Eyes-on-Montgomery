@@ -49,7 +49,8 @@ async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
     });
 
     if (!response.ok) {
-      console.warn(`Bright Data scrape failed for ${query}: ${response.status}`);
+      const errorBody = await response.text();
+      console.warn(`Bright Data scrape failed for ${query} | Status: ${response.status} | Body: ${errorBody}`);
       return [];
     }
 
