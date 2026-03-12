@@ -21,7 +21,7 @@ async function startServer() {
       throw new Error("GEMINI_API_KEY not configured");
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -42,6 +42,52 @@ async function startServer() {
 
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated";
+  }
+
+  // Bright Data scraping helper (Matches api/sentiment.ts for local/vercel consistency)
+  async function scrapeBrightData(query: string, apiKey: string): Promise<any | any[]> {
+    const zonesToTry = [
+      process.env.BRIGHT_DATA_ZONE,
+      'mcp_unlocker',
+      'mcp_browser'
+    ].filter(Boolean) as string[];
+    
+    const url = `https://api.brightdata.com/request`;
+    
+    for (const zone of zonesToTry) {
+      try {
+        console.log(`[Scraper] Probing zone: ${zone}`);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            zone: zone,
+            url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+            format: 'json'
+          })
+        });
+
+        const body = await response.text();
+        
+        if (response.ok && body.length > 100) {
+          try {
+            const data = JSON.parse(body);
+            if (data.organic && Array.isArray(data.organic) && data.organic.length > 0) return data.organic;
+            const block = data.content || data.html || data.results;
+            if (block) return typeof block === 'string' ? block : JSON.stringify(block);
+            return body;
+          } catch (e) {
+            if (body.toLowerCase().includes('<html') || body.length > 500) return body;
+          }
+        }
+      } catch (err) {
+        console.error(`[Scraper] Error for ${zone}:`, err);
+      }
+    }
+    return null;
   }
 
   // POST /api/ai-insights - Generate insights, predictions, anomalies
@@ -200,69 +246,23 @@ Answer:`;
         });
       }
 
-      // Build search queries from the plan's source matrix
+      console.log(`[Sentiment] Scraping via Bright Data API (Local)...`);
+
       const baseKeywords = userKeywords || "Montgomery Alabama city services";
-      const searchQueries = [
-        `site:reddit.com/r/montgomery ${baseKeywords}`,
-        `site:al.com Montgomery AL ${baseKeywords}`,
-        `site:wsfa.com Montgomery AL ${baseKeywords}`,
-        `Montgomery Alabama ${baseKeywords} community feedback`,
-      ];
-
-      console.log(`[Sentiment] Scraping ${searchQueries.length} queries via Bright Data...`);
-
-      // Use Bright Data MCP via MCP SDK to perform searches
-      const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
-      const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
-
-      console.log(`[Sentiment] Starting Bright Data MCP to scrape ${searchQueries.length} queries...`);
-
-      const transport = new StdioClientTransport({
-        command: process.platform === 'win32' ? "npx.cmd" : "npx",
-        args: ["-y", "@brightdata/mcp"],
-        env: { ...process.env, API_TOKEN: brightDataKey }
-      });
-
-      const mcpClient = new Client({ name: "montgomery-responsiveness", version: "1.0.0" }, { capabilities: {} });
-      await mcpClient.connect(transport);
+      const broadQuery = `${baseKeywords} Montgomery Alabama (site:reddit.com OR site:al.com OR site:wsfa.com)`;
       
-      let allTextContent = "";
-      const scrapedResults = [];
+      const results = await scrapeBrightData(broadQuery, brightDataKey);
 
-      for (const query of searchQueries) {
-        console.log(`[Sentiment] Executing MCP search for: ${query}`);
-        try {
-          const res = await mcpClient.callTool({
-            name: "search_engine",
-            arguments: { query, engine: "google" }
-          });
-          
-          if (res.content && res.content[0] && typeof res.content[0].text === "string") {
-            try {
-              const resJson = JSON.parse(res.content[0].text);
-              const organic = resJson.organic || [];
-              for (const item of organic) {
-                const text = `[${item.link}] ${item.title}: ${item.description || item.snippet || ''}`;
-                scrapedResults.push({ title: item.title, url: item.link, description: item.description || item.snippet });
-                allTextContent += text + "\n";
-              }
-            } catch (e) {
-              allTextContent += res.content[0].text + "\n";
-              scrapedResults.push({ title: "Result", url: "N/A", description: res.content[0].text.substring(0, 100) });
-            }
-          }
-        } catch (searchError) {
-          console.error(`[Sentiment] Search failed for ${query}:`, searchError);
-        }
+      if (!results) {
+        throw new Error("No live results found from Bright Data");
       }
 
-      await mcpClient.close();
-
-      if (scrapedResults.length === 0) {
-        throw new Error("No valid organic results from Bright Data MCP searching");
+      let textContent = "";
+      if (Array.isArray(results)) {
+        textContent = results.slice(0, 10).map(r => `[${r.link}] ${r.title}: ${r.snippet || r.description || ''}`).join('\n');
+      } else {
+        textContent = (results as string).substring(0, 15000);
       }
-
-      const textContent = allTextContent.substring(0, 12000); // Keep within Gemini limits
 
       console.log(`[Sentiment] Sending ${textContent.length} chars to Gemini for analysis...`);
 
@@ -276,10 +276,10 @@ Answer:`;
             sentimentScore: 50,
             trend: 'stable',
             topKeywords: extractBasicKeywords(textContent),
-            quotes: scrapedResults.slice(0, 5).map((r: any) => ({
-              text: r.description || r.snippet || r.title || 'No text available',
-              source: extractSourceName(r.url || r.link || '')
-            }))
+            quotes: Array.isArray(results) ? results.slice(0, 5).map((r: any) => ({
+              text: r.snippet || r.title || 'No text available',
+              source: extractSourceName(r.link || '')
+            })) : []
           }
         });
       }
@@ -309,7 +309,7 @@ Rules:
 - quotes should be 3-5 real excerpts from the scraped content, attributed to their source
 - Be objective and data-driven`;
 
-      const geminiResponse = await callGemini(analysisPrompt, "gemini-3-flash-preview");
+      const geminiResponse = await callGemini(analysisPrompt, "gemini-1.5-flash");
 
       // Parse the Gemini response
       let analysisData;
@@ -337,7 +337,7 @@ Rules:
       return res.json({
         success: true,
         status: 'live',
-        message: `Analyzed ${scrapedResults.length} results from Bright Data`,
+        message: `Analyzed live results from Bright Data`,
         data: analysisData
       });
 
