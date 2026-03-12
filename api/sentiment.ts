@@ -27,18 +27,23 @@ async function callGemini(prompt: string, model: string = "gemini-3.1-pro-previe
 }
 
 async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
-  // Try these common zone names in order
+  // Common SERP zone name patterns in Bright Data
   const zonesToTry = [
     process.env.BRIGHT_DATA_ZONE,
     'serp_api1',
     'serp_api_1',
-    'serp'
-  ].filter(Boolean);
+    'google',
+    'google_search',
+    'default',
+    'main'
+  ].filter(Boolean) as string[];
   
+  // Try both the simplified endpoint and the explicit one
   const url = `https://api.brightdata.com/request?brd_json=1`;
   
   for (const zone of zonesToTry) {
     try {
+      console.log(`[Scraper] Attempting scrape with zone: ${zone}`);
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -47,20 +52,30 @@ async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
         },
         body: JSON.stringify({
           zone: zone,
-          url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+          url: `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=en`,
           format: 'json'
         })
       });
 
+      const body = await response.text();
+      
       if (response.ok) {
-        const data = await response.json();
-        return data.organic || [];
+        try {
+          const data = JSON.parse(body);
+          if (data && data.organic) {
+            console.log(`[Scraper] SUCCESS using zone ${zone}: Found ${data.organic.length} results`);
+            return data.organic;
+          }
+        } catch (e) {
+          console.warn(`[Scraper] Zone ${zone} returned non-JSON: ${body.substring(0, 500)}`);
+        }
       } else {
-        const errorBody = await response.text();
-        console.warn(`Bright Data scrape attempt failed for query "${query}" using zone "${zone}". Status: ${response.status}. Body: ${errorBody}`);
+        console.warn(`[Scraper] Zone "${zone}" failed | Status: ${response.status} | Msg: ${body}`);
+        // If we get an "invalid zone" error specifically, we know this zone is wrong
+        // but if we get "unauthorized", there might be a key issue.
       }
     } catch (err) {
-      console.error(`Fetch error for zone ${zone}:`, err);
+      console.error(`[Scraper] System error for zone ${zone}:`, err);
     }
   }
 
