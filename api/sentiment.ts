@@ -30,18 +30,15 @@ async function scrapeBrightData(query: string, apiKey: string): Promise<any | an
   const zonesToTry = [
     process.env.BRIGHT_DATA_ZONE,
     'mcp_unlocker',
-    'mcp_browser',
-    'serp_api1',
-    'google',
-    'google_search'
+    'mcp_browser'
   ].filter(Boolean) as string[];
   
-  const url = `https://api.brightdata.com/request`; // Direct endpoint
+  const url = `https://api.brightdata.com/request`;
   
   for (const zone of zonesToTry) {
     try {
-      console.log(`[Scraper] Attempting scrape with zone: ${zone}`);
-      const response = await fetch(`${url}?brd_json=1`, { // Try JSON mode first
+      console.log(`[Scraper] Probing zone: ${zone}`);
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -49,38 +46,42 @@ async function scrapeBrightData(query: string, apiKey: string): Promise<any | an
         },
         body: JSON.stringify({
           zone: zone,
-          url: `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=en`,
-          format: 'json'
+          url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+          format: 'json' // Try to get structured first
         })
       });
 
       const body = await response.text();
       
-      if (response.ok) {
+      if (response.ok && body.length > 100) {
         try {
           const data = JSON.parse(body);
-          // If it's a SERP API zone, it has 'organic'
-          if (data && data.organic) {
-            console.log(`[Scraper] SUCCESS using SERP Zone ${zone}`);
+          // 1. Check for SERP Organic results
+          if (data.organic && Array.isArray(data.organic) && data.organic.length > 0) {
+            console.log(`[Scraper] SUCCESS: Found ${data.organic.length} SERP results in ${zone}`);
             return data.organic;
           }
-          // If it's an Unblocker zone returning JSON wrapper
-          if (data && (data.content || data.html)) {
-            console.log(`[Scraper] SUCCESS using Unblocker Zone ${zone} (JSON wrapped)`);
-            return data.content || data.html;
+          // 2. Check for general wrapped content
+          const block = data.content || data.html || data.results;
+          if (block) {
+            console.log(`[Scraper] SUCCESS: Found wrapped content in ${zone}`);
+            return typeof block === 'string' ? block : JSON.stringify(block);
           }
+          // 3. Last ditch: return the whole JSON as text for Gemini
+          console.log(`[Scraper] SUCCESS: Using raw JSON response from ${zone}`);
+          return body;
         } catch (e) {
-          // If it's not JSON, it might be raw HTML (common for mcp_unlocker)
-          if (body.toLowerCase().includes('<html')) {
-            console.log(`[Scraper] SUCCESS using Unblocker Zone ${zone} (Raw HTML)`);
+          // If not JSON but looks like HTML
+          if (body.toLowerCase().includes('<html') || body.length > 500) {
+            console.log(`[Scraper] SUCCESS: Found raw HTML/text in ${zone} (${body.length} chars)`);
             return body;
           }
         }
       } else {
-        console.warn(`[Scraper] Zone "${zone}" status ${response.status}: ${body.substring(0, 100)}`);
+        console.warn(`[Scraper] Zone "${zone}" ignored. Status: ${response.status}. Body: ${body.substring(0, 200)}`);
       }
     } catch (err) {
-      console.error(`[Scraper] System error for zone ${zone}:`, err);
+      console.error(`[Scraper] Critical connection error for ${zone}:`, err);
     }
   }
 
