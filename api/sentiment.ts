@@ -30,6 +30,7 @@ async function scrapeBrightData(query: string, apiKey: string): Promise<any[]> {
   // Common SERP zone name patterns in Bright Data
   const zonesToTry = [
     process.env.BRIGHT_DATA_ZONE,
+    'mcp_unlocker',
     'mcp_browser',
     'serp_api1',
     'serp_api_1',
