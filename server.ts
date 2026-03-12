@@ -15,13 +15,13 @@ async function startServer() {
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   // Helper function to call Gemini REST API
-  async function callGemini(prompt: string, model: string = "gemini-1.5-flash"): Promise<string> {
+  async function callGemini(prompt: string, model: string = "gemini-3.1-pro-preview"): Promise<string> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY not configured");
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -144,7 +144,7 @@ Respond with ONLY a JSON object:
 
       let insightData;
       try {
-        const geminiResponse = await callGemini(prompt, "gemini-1.5-flash");
+        const geminiResponse = await callGemini(prompt, "gemini-3.1-pro-preview");
         
         // Professional JSON extraction
         const firstBrace = geminiResponse.indexOf('{');
@@ -214,7 +214,7 @@ Answer:`;
 
       let response;
       try {
-        response = await callGemini(prompt, "gemini-1.5-flash");
+        response = await callGemini(prompt, "gemini-3.1-pro-preview");
       } catch (geminiError) {
         console.warn("AI query failed, using fallback:", geminiError);
         response = "I'm currently having trouble connecting to my central cognition engine. However, based on the cached data, I can see that District 3 and District 5 are currently seeing the highest volume of reports, primarily related to Sanitation and Public Works.";
@@ -309,7 +309,7 @@ Rules:
 - quotes should be 3-5 real excerpts from the scraped content, attributed to their source
 - Be objective and data-driven`;
 
-      const geminiResponse = await callGemini(analysisPrompt, "gemini-1.5-flash");
+      const geminiResponse = await callGemini(analysisPrompt, "gemini-3.1-pro-preview");
 
       // Parse the Gemini response
       let analysisData;
