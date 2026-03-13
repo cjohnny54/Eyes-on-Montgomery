@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-async function callGemini(prompt: string, model: string = "gemini-3.1-pro-preview"): Promise<string> {
+async function callGemini(prompt: string, model: string = "gemini-3-flash-preview"): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 

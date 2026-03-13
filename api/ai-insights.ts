@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const CACHE_TTL = 5 * 60 * 1000;
 const aiCache = new Map<string, { response: any; timestamp: number }>();
 
-async function callGemini(prompt: string, model: string = "gemini-3.1-pro-preview"): Promise<string> {
+async function callGemini(prompt: string, model: string = "gemini-3-flash-preview"): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
 
@@ -75,7 +75,7 @@ Respond with ONLY a JSON object:
 
     let response;
     try {
-      const geminiResponse = await callGemini(prompt, "gemini-3.1-pro-preview");
+      const geminiResponse = await callGemini(prompt, "gemini-3-flash-preview");
       const firstBrace = geminiResponse.indexOf('{');
       const lastBrace = geminiResponse.lastIndexOf('}');
       if (firstBrace === -1 || lastBrace === -1) throw new Error("No JSON found");

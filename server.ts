@@ -15,7 +15,7 @@ async function startServer() {
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   // Helper function to call Gemini REST API
-  async function callGemini(prompt: string, model: string = "gemini-3.1-pro-preview"): Promise<string> {
+  async function callGemini(prompt: string, model: string = "gemini-3-flash-preview"): Promise<string> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY not configured");
@@ -144,7 +144,7 @@ Respond with ONLY a JSON object:
 
       let insightData;
       try {
-        const geminiResponse = await callGemini(prompt, "gemini-3.1-pro-preview");
+        const geminiResponse = await callGemini(prompt, "gemini-3-flash-preview");
         
         // Professional JSON extraction
         const firstBrace = geminiResponse.indexOf('{');
@@ -217,7 +217,7 @@ Answer:`;
       let response;
       let isLive = false;
       try {
-        response = await callGemini(prompt, "gemini-3.1-pro-preview");
+        response = await callGemini(prompt, "gemini-3-flash-preview");
         isLive = true;
       } catch (geminiError) {
         console.warn("AI query failed, using fallback:", geminiError);
@@ -314,7 +314,7 @@ Rules:
 - quotes should be 3-5 real excerpts from the scraped content, attributed to their source
 - Be objective and data-driven`;
 
-      const geminiResponse = await callGemini(analysisPrompt, "gemini-3.1-pro-preview");
+      const geminiResponse = await callGemini(analysisPrompt, "gemini-3-flash-preview");
 
       // Parse the Gemini response
       let analysisData;
